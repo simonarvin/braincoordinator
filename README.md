@@ -25,7 +25,7 @@ Brain Coordinator is a Python 3-based stereotaxic coordinator compatible with an
 
 Download Brain Coordinator by cloning the repository:
 ```
-git clone https://github.com/simonarvin/eyeloop.git
+git clone https://github.com/simonarvin/braincoordinator.git
 ```
 
 You may want to use a Conda or Python virtual environment when installing `braincoordinator`, to avoid mixing up with your system dependencies.
