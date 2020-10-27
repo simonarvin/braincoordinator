@@ -13,7 +13,7 @@ class Arguments:
 
     def parse_args(self, args):
         parser = argparse.ArgumentParser()
-        parser.add_argument('--animal', metavar='animal', default = "mouse", required=False,
+        parser.add_argument('--animal', metavar='animal', default = "mouse_allen", required=False,
                             help='What animal to coordinate?')
 
         parser.add_argument('--reference', metavar='reference', default = "bregma", required=False,
