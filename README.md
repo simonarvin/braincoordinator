@@ -16,7 +16,9 @@ Brain Coordinator is a Python 3-based stereotaxic coordinator compatible with an
 
 ## Overview ##
 - [Getting started](#getting-started)
+- [Bringing data to the lab](#bringing-data-to-the-lab)
 - [How it works](#how-it-works)
+- [Authors](#authors)
 
 
 ## Getting started ##
@@ -40,8 +42,33 @@ Using pip and a virtual environment:
 
 > Remember to ```cd [path]``` to your braincoordinator directory.
 
-Then, run ```braincoordinator``` by running
+Then, initiate ```braincoordinator``` by running
 
 ```braincoordinator```
 
 > Write ```braincoordinator --help``` for instructions.
+
+### Controls ###
+Brain Coordinator is based on simple keyboard commands and mouse clicks.
+- <kbd>A</kbd>/<kbd>S</kbd>: previous/next coronal slice.
+- <kbd>Z</kbd>/<kbd>X</kbd>: previous/next sagittal slice.
+- <kbd>D</kbd>: place marker at mouse location.
+- <kbd>F</kbd>: remove most recent marker.
+- <kbd>P</kbd>: save data-file.
+
+Click and drag to move markers.
+
+## Known issues ##
+None yet.
+<p align="right">
+    <img src="https://github.com/simonarvin/eyeloop/blob/master/misc/imgs/constant.svg?raw=true" align="right" height="180">
+    </p>
+
+## License ##
+This project is licensed under the MIT License. Note that the software is provided "as is", without warranty of any kind, express or implied.
+
+## Authors ##
+
+**Lead Developer:**
+Simon Arvin, sarv@dandrite.au.dk
+
