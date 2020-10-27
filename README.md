@@ -15,5 +15,33 @@ Brain Coordinator is a Python 3-based stereotaxic coordinator compatible with an
 - [x] **Actively maintained**.
 
 ## Overview ##
-- [How it works](#how-it-works)
 - [Getting started](#getting-started)
+- [How it works](#how-it-works)
+
+
+## Getting started ##
+
+### Installation ###
+
+Download Brain Coordinator by cloning the repository:
+```
+git clone https://github.com/simonarvin/eyeloop.git
+```
+
+You may want to use a Conda or Python virtual environment when installing `braincoordinator`, to avoid mixing up with your system dependencies.
+
+Using pip and a virtual environment:
+
+```python -m venv venv```
+
+```source venv/bin/activate```
+
+```(venv) pip install .```
+
+> Remember to ```cd [path]``` to your braincoordinator directory.
+
+Then, run ```braincoordinator``` by running
+
+```braincoordinator```
+
+> Write ```braincoordinator --help``` for instructions.
