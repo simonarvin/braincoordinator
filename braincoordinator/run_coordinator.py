@@ -43,10 +43,30 @@ class Coordinator:
         self.hover_window = 0
 
         cv2.namedWindow('Sagittal', cv2.WINDOW_NORMAL)
+        self.print_instructions()
 
         self.manager.set_values(ap, ml, dv)
         self.iterate()
 
+
+
+    def print_instructions(self):
+        instructions = """
+                        BRAIN COORDINATOR
+            Developed by Simon Arvin
+            https://github.com/simonarvin/braincoordinator
+
+        INSTRUCTIONS:
+        A/S - previous/next coronal slice.
+        Z/X - previous/next sagittal slice.
+        D   - place marker.
+        F   - remove marker.
+        P   - save data-file.
+
+        Click and drag to move markers.
+        """
+
+        print(instructions)
 
     def frontal_mouse(self, event, x:float, y:float, flags, param) -> None:
 
@@ -178,12 +198,13 @@ class Coordinator:
 
         self.manager.set_scale()
 
-        #self.clear()
-        #print("Markers")
+        self.clear()
+        self.print_instructions()
+        print("Markers")
 
         for i, marker in enumerate(self.markers):
 
-            print("     M{}\nap: {}\nml: {}\ndv: {}\n----".format(i,marker[2][0],marker[2][1],marker[2][2]))
+            print("     M{} - ap: {}; ml: {}; dv: {}".format(i,marker[2][0],marker[2][1],marker[2][2]))
 
             if (i + 1) % 2 == 0:
                 angle_front = np.degrees(np.arctan2(-self.markers[i - 1][2][1] + marker[2][1], -self.markers[i-1][2][2] + marker[2][2]))
@@ -197,9 +218,8 @@ class Coordinator:
                     self.paths.append([i,self.markers[i - 1], marker, angle_front, angle_sag, distance])
 
 
-                print("M{}-M{} angle-front: {} deg\n----".format(i - 1, i, np.round(angle_front), 2))
-                print("M{}-M{} angle-sag: {} deg\n----".format(i - 1, i, np.round(angle_sag), 2))
-                print("Distance: {} mm\n-----".format(round(distance, 2)))
+                print("     |M{}M{}| {} mm; ang_cor: {} deg; ang_sag: {} deg".format(i - 1, i, round(distance, 2), np.round(angle_front, 2), np.round(angle_sag, 2)))
+
 
             if marker[3] == 0: #frontal
                 if marker[1] == self.manager.coronal_index:
