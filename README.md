@@ -32,6 +32,10 @@ git clone https://github.com/simonarvin/braincoordinator.git
 
 You may want to use a Conda or Python virtual environment when installing `braincoordinator`, to avoid mixing up with your system dependencies.
 
+<p align="right">
+    <img src="https://raw.githubusercontent.com/simonarvin/braincoordinator/main/braincoordinator/graphics/terminal_readme.svg" align="right" height="200">
+</p>
+
 Using pip and a virtual environment:
 
 ```python -m venv venv```
