@@ -7,8 +7,11 @@ import cv2
 class Manager:
     def __init__(self, animal_path, preload, reference):
         self.animal_path = animal_path
+        try:
+            self.slices = [file_name for file_name in listdir(self.animal_path) if isfile(join(self.animal_path, file_name))]
+        except:
+            raise FileNotFoundError
 
-        self.slices = [file_name for file_name in listdir(self.animal_path) if isfile(join(self.animal_path, file_name))]
         self.coronals = []
         self.sagittals = []
         self.resize_factor = 1
@@ -74,7 +77,6 @@ class Manager:
         ml = self.sagittals[self.sagittal_index]
 
         self.coordinate = coronal_tuple[self.reference], ml
-
 
         if self.preload == 1:
             coronal_image = self.coronal_images[self.coronal_index].copy()
