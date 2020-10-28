@@ -78,17 +78,23 @@ Brain Coordinator is based on simple keyboard commands and mouse clicks.
 
 Click and drag to move markers.
 
+<p align="right">
+    <img src="https://raw.githubusercontent.com/simonarvin/braincoordinator/main/braincoordinator/graphics/crunch.svg" align="right" height="300">
+</p>
+
 ### Bringing data to the lab ###
 Coming soon.
+Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum
 
 ## Known issues ##
 None yet.
-<p align="right">
-    <img src="https://github.com/simonarvin/eyeloop/blob/master/misc/imgs/constant.svg?raw=true" align="right" height="180">
-    </p>
 
 ## License ##
 This project is licensed under the MIT License. Note that the software is provided "as is", without warranty of any kind, express or implied.
+
+<p align="right">
+    <img src="https://github.com/simonarvin/eyeloop/blob/master/misc/imgs/constant.svg?raw=true" align="right" height="180">
+    </p>
 
 ## Authors ##
 
