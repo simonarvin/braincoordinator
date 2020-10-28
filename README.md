@@ -1,4 +1,4 @@
-# Brain Coordinator [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/simonarvin/braincoordinator/issues) ![version](https://img.shields.io/badge/version-0.1--beta-brightgreen) ![lab](https://img.shields.io/badge/yonehara-lab-blue) ![beta](https://img.shields.io/badge/-beta-orange)
+# Brain Coordinator [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/simonarvin/braincoordinator/issues) ![version](https://img.shields.io/badge/version-0.1--beta-brightgreen) ![beta](https://img.shields.io/badge/-beta-orange)
 
 <p align="center">
 <img src="https://raw.githubusercontent.com/simonarvin/braincoordinator/main/braincoordinator/graphics/logo.svg" width = "500">
@@ -77,6 +77,9 @@ Brain Coordinator is based on simple keyboard commands and mouse clicks.
 - <kbd>P</kbd>: save data-file.
 
 Click and drag to move markers.
+
+### Bringing data to the lab ###
+Coming soon.
 
 ## Known issues ##
 None yet.
