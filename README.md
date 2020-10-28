@@ -7,7 +7,7 @@
 Brain Coordinator is a Python 3-based stereotaxic coordinator compatible with any stereotaxic atlas. This software is actively maintained: Users are encouraged to contribute to its development.
 
 ## Features ##
-- [x] **Easily coordinate your surgeries**, with an angle or not.
+- [x] **Easily coordinate your surgerical procedures**, with an angle or not.
 - [x] Compatible with **any stereotaxic atlas**.
 - [x] **Correct** bregma/lambda discrepancies.
 - [x] **Avoid** sensitive structures.
@@ -51,6 +51,22 @@ Then, initiate ```braincoordinator``` by running
 ```braincoordinator```
 
 > Write ```braincoordinator --help``` for instructions.
+
+### Add an atlas ###
+
+To see a list of all available atlases, run
+
+```braincoordinator --get list```
+
+To download and install an atlas, run
+
+```braincoordinator --get [atlas_id]```
+
+> e.g., ```braincoordinator --get mouse_allen``` to add the mouse brain atlas from Allen Institute.
+
+Finally, to test your new atlas, run
+
+```braincoordinator --animal [atlas_id]```
 
 ### Controls ###
 Brain Coordinator is based on simple keyboard commands and mouse clicks.
