@@ -7,6 +7,7 @@ class Arguments:
         self.animal = parsed_args.animal
         self.preload = parsed_args.preload
         self.reference = parsed_args.reference
+        self.get = parsed_args.get
 
         print("Animal: {}".format(self.animal))
         print("Reference: {}".format(self.reference))
@@ -21,5 +22,8 @@ class Arguments:
 
         parser.add_argument('--preload', metavar='preload', default = 0, required=False,
                             help='Preload all slices?')
+
+        parser.add_argument('--get', metavar='get', default = "", required=False,
+                            help='Download atlas.')
 
         return parser.parse_args(args)

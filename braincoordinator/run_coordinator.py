@@ -13,6 +13,7 @@ from datetime import datetime
 from braincoordinator.utilities.manager import Manager
 from braincoordinator.utilities.computations import *
 from braincoordinator.utilities.arguments import Arguments
+from braincoordinator.utilities.get_atlas import Getter
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 
@@ -21,6 +22,9 @@ class Coordinator:
 
         self.arguments = Arguments(args)
 
+        if self.get(self.arguments.get):
+            return
+
         self.reference = int(str(self.arguments.reference[0]).lower() == "l") #bregma = 0; lambda = 1
         self.counterreference = int(self.reference == 0)
         self.dir_path = dirname(path.realpath(__file__))
@@ -28,7 +32,17 @@ class Coordinator:
         self.preload = self.arguments.preload
 
         animal_path = "{}/atlas/{}/".format(self.dir_path, self.animal)
-        self.manager = Manager(animal_path, self.preload, self.reference)
+
+        try:
+            self.manager = Manager(animal_path, self.preload, self.reference)
+        except FileNotFoundError as e:
+            print(e)
+            print("")
+            print("Atlas not available.")
+            print("Write '--get [atlas]' to download an atlas.")
+            print("Or, write '--get list' to list all atlases.")
+            return
+
 
         self.selected_marker = None
 
@@ -38,17 +52,21 @@ class Coordinator:
         self.primary_color = [0, 0, 255]
         self.second_color = [50, 50, 255]
 
-
         self.x, self.y = [0,0], [0,0]
         self.hover_window = 0
 
-        cv2.namedWindow('Sagittal', cv2.WINDOW_NORMAL)
         self.print_instructions()
 
         self.manager.set_values(ap, ml, dv)
         self.iterate()
 
+    def get(self, get:str):
 
+        if get != "":
+            Getter(get)
+            return True
+
+        return False
 
     def print_instructions(self):
         instructions = """
@@ -287,7 +305,7 @@ class Coordinator:
                         cv2.circle(coronal_image, tuple(start), 4, self.primary_color, -1)
 
                 size = max(.7 - abs(coord_float - marker[2][0]) * .2, .3)
-                new_marker = self.to_pixel(marker[2], 0)
+                new_marker = self.manager.to_pixel(marker[2], 0)
                 self.place_cross(coronal_image, new_marker, self.primary_color)
                 cv2.putText(coronal_image, "M" + str(i), tuple([mark + 5 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
 
