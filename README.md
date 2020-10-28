@@ -79,7 +79,7 @@ Brain Coordinator is based on simple keyboard commands and mouse clicks.
 Click and drag to move markers.
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/simonarvin/braincoordinator/main/braincoordinator/graphics/crunch.svg" align="center" height="300">
+    <img src="https://raw.githubusercontent.com/simonarvin/braincoordinator/main/braincoordinator/graphics/crunch.svg" align="center" height="250">
 </p>
 
 ### Bringing data to the lab ###
