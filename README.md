@@ -1,4 +1,4 @@
-# Brain Coordinator [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/simonarvin/braincoordinator/issues) ![version](https://img.shields.io/badge/version-0.1--beta-brightgreen) ![beta](https://img.shields.io/badge/-beta-orange)
+# Brain Coordinator [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://www.gnu.org/licenses/gpl-3.0) [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/simonarvin/braincoordinator/issues) ![version](https://img.shields.io/badge/version-0.1--beta-brightgreen) ![beta](https://img.shields.io/badge/-beta-orange)
 
 <p align="center">
 <img src="https://raw.githubusercontent.com/simonarvin/braincoordinator/main/braincoordinator/graphics/logo.svg" width = "500">
@@ -78,12 +78,11 @@ Brain Coordinator is based on simple keyboard commands and mouse clicks.
 
 Click and drag to move markers.
 
+<p align="center">
+    <img src="https://raw.githubusercontent.com/simonarvin/braincoordinator/main/braincoordinator/graphics/crunch.svg" align="center" height="250">
+</p>
 
 ### Bringing data to the lab ###
-
-<p align="center">
-    <img src="https://raw.githubusercontent.com/simonarvin/braincoordinator/main/braincoordinator/graphics/crunch.svg" align="center" height="300">
-</p>
 
 Coming soon.
 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum
