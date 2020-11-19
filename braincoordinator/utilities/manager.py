@@ -46,6 +46,7 @@ class Manager:
 
         vals = to_decimal(ap, ml, dv)
         self.ap, self.ml, self.dv = vals
+
         self.coordinate = vals[0], vals[1]
 
     def next(self, type:str):
@@ -155,7 +156,7 @@ class Manager:
 
             if self.resize_factor != 1:
                 size = sagittal_image.shape
-                print("size")
+
                 sagittal_image = cv2.resize(sagittal_image, (int(size[1] * self.resize_factor), int(size[0] * self.resize_factor)), interpolation=cv2.INTER_AREA)
 
             print("Loading sagittal {}/{}".format(index, len(self.sagittals) - 1))

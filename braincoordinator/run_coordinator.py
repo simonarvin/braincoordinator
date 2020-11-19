@@ -216,7 +216,7 @@ class Coordinator:
 
         self.manager.set_scale()
 
-        self.clear()
+        #self.clear()
         self.print_instructions()
         print("Markers")
 
@@ -450,7 +450,7 @@ class Coordinator:
 
         #todo: du mangler angles og angle korrektion i save-file
 
-        self.coronal_index, self.sagittal_index = self.manager.find_nearest_slices()
+        self.manager.coronal_index, self.manager.sagittal_index = self.manager.find_nearest_slices()
 
         coronal_image, sagittal_image = self.update()
 
