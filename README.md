@@ -1,4 +1,4 @@
-# Brain Coordinator [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://www.gnu.org/licenses/gpl-3.0) [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/simonarvin/braincoordinator/issues) ![version](https://img.shields.io/badge/version-0.1--beta-brightgreen) ![beta](https://img.shields.io/badge/-beta-orange)
+# Brain Coordinator [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://www.gnu.org/licenses/gpl-3.0) [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/simonarvin/braincoordinator/issues) ![version](https://img.shields.io/badge/version-0.11--beta-brightgreen) ![beta](https://img.shields.io/badge/-beta-orange)
 
 <p align="center">
 <img src="https://raw.githubusercontent.com/simonarvin/braincoordinator/main/braincoordinator/graphics/logo.svg" width = "500">
