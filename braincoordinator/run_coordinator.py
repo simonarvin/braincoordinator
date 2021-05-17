@@ -5,8 +5,8 @@ from os.path import dirname
 import cv2
 
 import numpy as np
-from openpyxl import load_workbook
-from shutil import copyfile
+#from openpyxl import load_workbook
+#from shutil import copyfile
 
 from datetime import datetime
 
@@ -79,7 +79,6 @@ class Coordinator:
         Z/X - previous/next sagittal slice.
         D   - place marker.
         F   - remove marker.
-        P   - save data-file.
 
         Click and drag to move markers.
         """
@@ -322,91 +321,93 @@ class Coordinator:
         else:
             _ = system('clear')
 
-    def copy_paste_xcl(self, startCol, startRow, endCol, endRow, sheet, data_out):
+    # def copy_paste_xcl(self, startCol, startRow, endCol, endRow, sheet, data_out):
+    #
+    #     rangeSelected = []
+    #     #Loops through selected Rows
+    #     for i in range(startRow, endRow + 1,1):
+    #     #Appends the row to a RowSelected list
+    #         rowSelected = []
+    #         for j in range(startCol,endCol+1,1):
+    #             rowSelected.append(sheet.cell(row = i, column = j).value)
+    #         #Adds the RowSelected List and nests inside the rangeSelected
+    #         rangeSelected.append(rowSelected)
+    #
+    #     q=0
+    #     for path in data_out:
+    #
+    #         #n+=1
+    #
+    #         countRow = 0
+    #
+    #         #todo: add one marker also
+    #
+    #         rangeSelected[5][1]=path[3] #front ang
+    #         rangeSelected[6][1]=path[4] #sag ang
+    #         rangeSelected[7][1]=path[5] #distance
+    #
+    #         rangeSelected[13][1]="=B{}-180/PI()*MOD(G3,PI())".format(12+17*q)
+    #         rangeSelected[14][1]="=B{}-180/PI()*MOD(G4,PI())".format(13+17*q)
+    #         rangeSelected[15][1]="=((B{}-B{})^2+(C{}-C{})^2+(D{}-D{})^2)^(1/2)".format(18+17*q,19+17*q,18+17 *q,19+17*q,18+17*q,19+17*q)
+    #
+    #         #Marker 1
+    #
+    #         rangeSelected[3][0]="m{}".format(path[0]-1)
+    #         rangeSelected[3][1]="=B3 + {}".format(path[1][2][0])#ap
+    #         rangeSelected[3][2]="=C3 + {}".format(path[1][2][1])#ml
+    #         rangeSelected[3][3]="=D3 + {}".format(path[1][2][2])#dv
+    #
+    #         #Marker 2
+    #
+    #         rangeSelected[4][0]="m{}".format(path[0])
+    #         rangeSelected[4][1]="=B3 + {}".format(path[2][2][0])#ap
+    #         rangeSelected[4][2]="=C3 + {}".format(path[2][2][1])#ml
+    #         rangeSelected[4][3]="=D3 + {}".format(path[2][2][2])#dv
+    #
+    #         #AP
+    #         rangeSelected[11][1]="=B3 + G7 * (B{} - B3) - H7 * (C{}-C3)".format(10 + 17*q, 10+17*q)
+    #         rangeSelected[12][1]="=B3 + G7 * (B{} - B3) - H7 * (C{}-C3)".format(11 + 17 *q, 11+17*q)
+    #
+    #
+    #         rangeSelected[11][0]="m{}".format(path[0] -1)
+    #         rangeSelected[12][0]="m{}".format(path[0])
+    #         #ML
+    #         rangeSelected[11][2]="=H7 * (B{} - B3) +G7 * (C{} - C3)".format(10 + 17 * q, 10 + 17 * q)
+    #         rangeSelected[12][2]="=H7 * (B{} - B3) +G7 * (C{} - C3)".format(11 + 17 * q, 11 + 17 * q)
+    #
+    #         #DV
+    #         rangeSelected[11][3]="=D{}".format(10 + 17 * q)
+    #         rangeSelected[12][3]="=D{}".format(11 + 17 * q)
+    #
+    #         q+=1
+    #
+    #         for i in range(startRow, endRow+1,1):
+    #             countCol = 0
+    #             for j in range(startCol, endCol+1,1):
+    #
+    #                 sheet.cell(row = i, column = j).value = rangeSelected[countRow][countCol]
+    #                 countCol += 1
+    #             countRow += 1
+    #         startRow += 17
+    #         endRow += 17
 
-        rangeSelected = []
-        #Loops through selected Rows
-        for i in range(startRow, endRow + 1,1):
-        #Appends the row to a RowSelected list
-            rowSelected = []
-            for j in range(startCol,endCol+1,1):
-                rowSelected.append(sheet.cell(row = i, column = j).value)
-            #Adds the RowSelected List and nests inside the rangeSelected
-            rangeSelected.append(rowSelected)
 
-        q=0
-        for path in data_out:
-
-            #n+=1
-
-            countRow = 0
-
-            #todo: add one marker also
-
-            rangeSelected[5][1]=path[3] #front ang
-            rangeSelected[6][1]=path[4] #sag ang
-            rangeSelected[7][1]=path[5] #distance
-
-            rangeSelected[13][1]="=B{}-180/PI()*MOD(G3,PI())".format(12+17*q)
-            rangeSelected[14][1]="=B{}-180/PI()*MOD(G4,PI())".format(13+17*q)
-            rangeSelected[15][1]="=((B{}-B{})^2+(C{}-C{})^2+(D{}-D{})^2)^(1/2)".format(18+17*q,19+17*q,18+17 *q,19+17*q,18+17*q,19+17*q)
-
-            #Marker 1
-
-            rangeSelected[3][0]="m{}".format(path[0]-1)
-            rangeSelected[3][1]="=B3 + {}".format(path[1][2][0])#ap
-            rangeSelected[3][2]="=C3 + {}".format(path[1][2][1])#ml
-            rangeSelected[3][3]="=D3 + {}".format(path[1][2][2])#dv
-
-            #Marker 2
-
-            rangeSelected[4][0]="m{}".format(path[0])
-            rangeSelected[4][1]="=B3 + {}".format(path[2][2][0])#ap
-            rangeSelected[4][2]="=C3 + {}".format(path[2][2][1])#ml
-            rangeSelected[4][3]="=D3 + {}".format(path[2][2][2])#dv
-
-            #AP
-            rangeSelected[11][1]="=B3 + G7 * (B{} - B3) - H7 * (C{}-C3)".format(10 + 17*q, 10+17*q)
-            rangeSelected[12][1]="=B3 + G7 * (B{} - B3) - H7 * (C{}-C3)".format(11 + 17 *q, 11+17*q)
-
-
-            rangeSelected[11][0]="m{}".format(path[0] -1)
-            rangeSelected[12][0]="m{}".format(path[0])
-            #ML
-            rangeSelected[11][2]="=H7 * (B{} - B3) +G7 * (C{} - C3)".format(10 + 17 * q, 10 + 17 * q)
-            rangeSelected[12][2]="=H7 * (B{} - B3) +G7 * (C{} - C3)".format(11 + 17 * q, 11 + 17 * q)
-
-            #DV
-            rangeSelected[11][3]="=D{}".format(10 + 17 * q)
-            rangeSelected[12][3]="=D{}".format(11 + 17 * q)
-
-            q+=1
-
-            for i in range(startRow, endRow+1,1):
-                countCol = 0
-                for j in range(startCol, endCol+1,1):
-
-                    sheet.cell(row = i, column = j).value = rangeSelected[countRow][countCol]
-                    countCol += 1
-                countRow += 1
-            startRow += 17
-            endRow += 17
-
-
-    def save_data(self):
-        if len(self.paths) == 0:
-            print("No paths marked.")
-            return
-
-        now = datetime.now()
-        time = now.strftime("%Y%m%d%H%M%S")
-        new_save = self.dir_path+"/data/{}_coordinates_{}.xlsx".format(self.animal, time)
-        copyfile(self.dir_path+"/data/do-not-delete.xlsx", new_save)
-        workbook = load_workbook(filename=new_save)
-        sheet = workbook.active
-        self.copy_paste_xcl(1, 7, 4, 22, sheet, self.paths)
-        workbook.save(filename = new_save)
-        print("Data saved")
+    # def save_data(self):
+    #     if len(self.paths) == 0:
+    #         print("No paths marked.")
+    #         return
+    #
+    #     now = datetime.now().strftime("%Y%m%d%H%M%S")
+    #     new_save = f"{self.dir_path}/data/{self.animal}_coordinates_{now}.coords"
+    #     np.write()
+    #
+    #     #new_save = self.dir_path+"/data/{}_coordinates_{}.xlsx".format(self.animal, time)
+    #     #copyfile(self.dir_path+"/data/do-not-delete.xlsx", new_save)
+    #     #workbook = load_workbook(filename=new_save)
+    #     #sheet = workbook.active
+    #     #self.copy_paste_xcl(1, 7, 4, 22, sheet, self.paths)
+    #     #workbook.save(filename = new_save)
+    #     print("Data saved")
 
     def keyHandler(self, key):
         if key == ord("x"):
@@ -439,16 +440,14 @@ class Coordinator:
                 self.markers.pop()
             except:
                 pass
-        elif key == ord("p"):
-            self.save_data()
+        # elif key == ord("p"):
+        #     self.save_data()
         elif key == ord("q"):
             return True
 
         return False
 
     def iterate(self):
-
-        #todo: du mangler angles og angle korrektion i save-file
 
         self.manager.coronal_index, self.manager.sagittal_index = self.manager.find_nearest_slices()
 

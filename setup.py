@@ -21,7 +21,7 @@ setup(
     license_file='LICENSE',
     platforms='any',
     python_requires='>=3.7',
-    version='0.1',
+    version='0.11',
     entry_points={
         'console_scripts': [
             'braincoordinator=braincoordinator.run_coordinator:main'
