@@ -9,7 +9,6 @@ Brain Coordinator is a Python 3-based stereotaxic coordinator compatible with an
 ## Features ##
 - [x] **Easily coordinate your surgerical procedures**, with an angle or not.
 - [x] Compatible with **any stereotaxic atlas**.
-- [x] **Correct** bregma/lambda discrepancies.
 - [x] **Avoid** sensitive structures.
 - [x] Vary your path of entry to **reduce confounders**.
 - [x] **Actively maintained**.
@@ -74,7 +73,6 @@ Brain Coordinator is based on simple keyboard commands and mouse clicks.
 - <kbd>Z</kbd>/<kbd>X</kbd>: previous/next sagittal slice.
 - <kbd>D</kbd>: place marker at mouse location.
 - <kbd>F</kbd>: remove most recent marker.
-- <kbd>P</kbd>: save data-file.
 
 Click and drag to move markers.
 
@@ -82,10 +80,6 @@ Click and drag to move markers.
     <img src="https://raw.githubusercontent.com/simonarvin/braincoordinator/main/braincoordinator/graphics/crunch.svg" align="center" height="250">
 </p>
 
-### Bringing data to the lab ###
-
-Coming soon.
-Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum
 
 ## Known issues ##
 None yet.
