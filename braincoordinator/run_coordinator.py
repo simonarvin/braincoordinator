@@ -21,6 +21,7 @@ class Coordinator:
     def __init__(self, args, ap:float = 0, ml:float = 0, dv:float =0) -> None:
 
         self.arguments = Arguments(args)
+        self.cursor_color = (0,0,0)
 
         if self.get(self.arguments.get):
             return
@@ -94,8 +95,16 @@ class Coordinator:
                 if self.selected_marker[3] == self.hover_window:
                     self.manager.update_marker(self.selected_marker, (x, y), self.hover_window)
                     coronal_image, sagittal_image = self.update()
-                    cv2.imshow("Coronal", coronal_image)
                     cv2.imshow("Sagittal", sagittal_image)
+
+            coronal_image= self.coronal_image.copy()
+            coronal_image[:,x] = self.cursor_color
+            coronal_image[y,:] = self.cursor_color
+
+            coords = self.manager.convert_to_mm((x,y), 0)
+            cv2.putText(coronal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
+
+            cv2.imshow("Coronal", coronal_image)
 
 
         if event == cv2.EVENT_LBUTTONDOWN:
@@ -120,7 +129,16 @@ class Coordinator:
                     self.manager.update_marker(self.selected_marker, (x, y), self.hover_window)
                     coronal_image, sagittal_image = self.update()
                     cv2.imshow("Coronal", coronal_image)
-                    cv2.imshow("Sagittal", sagittal_image)
+
+            sagittal_image = self.sagittal_image.copy()
+            sagittal_image[:,x] = self.cursor_color
+            sagittal_image[y,:] = self.cursor_color
+
+            coords = self.manager.convert_to_mm((x,y), 1)
+            cv2.putText(sagittal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
+
+            cv2.imshow("Sagittal", sagittal_image)
+
 
         if event == cv2.EVENT_LBUTTONDOWN:
             if self.selected_marker == None:
@@ -308,6 +326,7 @@ class Coordinator:
                 self.place_cross(coronal_image, new_marker, self.primary_color)
                 cv2.putText(coronal_image, "M" + str(i), tuple([mark + 5 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
 
+        self.coronal_image, self.sagittal_image = coronal_image, sagittal_image
         return coronal_image, sagittal_image
 
 

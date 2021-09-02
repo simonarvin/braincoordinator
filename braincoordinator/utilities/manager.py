@@ -102,6 +102,7 @@ class Manager:
                 sagittal_image = cv2.resize(sagittal_image, (int(size[1] * self.resize_factor), int(size[0] * self.resize_factor)),interpolation = cv2.INTER_AREA)
 
         return coronal_image, sagittal_image
+
     def convert_to_mm(self, marker, type:int) -> np.ndarray:
 
         if type == 0: #ap
@@ -212,7 +213,7 @@ class Manager:
                self.coronal_dvs.append(split)
                line = fp.readline()
 
-    def retrieve_sagittal_scale(self):
+    def retrieve_sagittal_scale(self):#todo: fix sagittal/coronal naming
 
         filepath = self.animal_path+'/sagittal_ap.sc'
         self.sagittal_aps = []
@@ -225,6 +226,8 @@ class Manager:
                self.sagittal_aps.append(split)
                line = fp.readline()
 
+        self.sagital_aps_txt = self.sagittal_aps.pop()
+
         filepath = self.animal_path + '/sagittal_dv.sc'
         self.sagittal_dvs = []
 
@@ -235,6 +238,7 @@ class Manager:
                split = np.array(split, dtype = int) * self.resize_factor
                self.sagittal_dvs.append(split)
                line = fp.readline()
+        self.sagital_dvs_txt = self.sagittal_dvs.pop()
 
     #    self.sagittal_dvs=np.array(self.sagittal_dvs)
     #    ll=np.concatenate((np.flip(self.sagittal_dvs[1:],axis=0),self.sagittal_dvs))
