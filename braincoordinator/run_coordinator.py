@@ -108,12 +108,16 @@ class Coordinator:
 
     def setup_manual_prompt(self):
         self.window = window = Tk()
-        window.title("Welcome to TutorialsPoint")
+        window.title("stereotaxic coordinator")
         #window.geometry('300x200')
         #window.configure(background = "white")
         self.coronal_txt = StringVar()
         self.coronal_txt.set("move cursor to canvas")
         Label(window,textvariable = self.coronal_txt, height = 2).grid(row = 0, column = 0, columnspan =5)
+
+        self.sagittal_txt = StringVar()
+        self.sagittal_txt.set("move cursor to canvas")
+        Label(window,textvariable = self.sagittal_txt, height = 2).grid(row = 0, column = 5, columnspan =5)
 
         Label(window ,text = "marker").grid(row = 2,column = 0)
 
@@ -285,6 +289,25 @@ class Coordinator:
         def close_():
             self.window.destroy()
 
+        menubar = Menu(self.window)
+        filemenu = Menu(menubar, tearoff=0)
+        filemenu.add_command(label="Export as..", command=close_)
+        filemenu.add_command(label="Exit", command=close_)
+
+        menubar.add_cascade(label="File", menu=filemenu)
+
+        editmenu = Menu(menubar, tearoff=0)
+        editmenu.add_command(label="Undo", command=close_)
+
+        menubar.add_cascade(label="Edit", menu=editmenu)
+
+        helpmenu = Menu(menubar, tearoff=0)
+        helpmenu.add_command(label="Acronyms", command=lambda:None)
+        helpmenu.add_command(label="About", command=lambda:None)
+        menubar.add_cascade(label="Help", menu=helpmenu)
+
+        self.window.config(menu=menubar)
+
         ttk.Button(self.window ,text="close",command=close_).grid(row=6, column=2)
 
         coronal_image, sagittal_image = self.update()
@@ -344,7 +367,7 @@ class Coordinator:
             if self.selected_marker[3] == self.hover_window:
                 self.manager.update_marker(self.selected_marker, (x, y), self.hover_window)
                 coronal_image, sagittal_image = self.update()
-                cv2.imshow("Sagittal", sagittal_image)
+
 
         coronal_image= self.coronal_image.copy()
         try:
@@ -375,7 +398,7 @@ class Coordinator:
             if self.selected_marker[3] == self.hover_window:
                 self.manager.update_marker(self.selected_marker, (x, y), self.hover_window)
                 coronal_image, sagittal_image = self.update()
-                cv2.imshow("Coronal", coronal_image)
+                #cv2.imshow("Coronal", coronal_image)
 
         sagittal_image = self.sagittal_image.copy()
         try:
@@ -385,8 +408,8 @@ class Coordinator:
             return
 
         coords = self.manager.convert_to_mm((x,y), 1)
-        cv2.putText(sagittal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
-
+        #cv2.putText(sagittal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
+        self.sagittal_txt.set(f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}")
         #cv2.imshow("Sagittal", sagittal_image)
         self.update_sagittal_tkt(sagittal_image)
 
@@ -439,7 +462,7 @@ class Coordinator:
                 if self.selected_marker[3] == self.hover_window:
                     self.manager.update_marker(self.selected_marker, (x, y), self.hover_window)
                     coronal_image, sagittal_image = self.update()
-                    cv2.imshow("Coronal", coronal_image)
+                    #cv2.imshow("Coronal", coronal_image)
 
             sagittal_image = self.sagittal_image.copy()
             sagittal_image[:,x] = self.cursor_color
@@ -570,86 +593,58 @@ class Coordinator:
                 print("     |M{}M{}| {} mm; ang_cor: {} deg; ang_sag: {} deg".format(i - 1, i, round(distance, 2), np.round(angle_front, 2), np.round(angle_sag, 2)))
 
 
-            if marker[3] == 0: #frontal
+            coord_float=str_to_float(self.manager.coordinate[1])
+            if (i + 1) % 2 == 0:
 
-                if marker[1] == self.manager.coronal_index:
+                if self.markers[i - 1][2][1] > coord_float > marker[2][1] or self.markers[i - 1][2][1] < coord_float < marker[2][1]:
+                    fraction = (coord_float - self.markers[i - 1][2][1])/(marker[2][1] - self.markers[i - 1][2][1])
 
-                    self.place_cross(coronal_image, marker[0],self.primary_color)
+                    new_marker = self.manager.to_pixel(marker[2], 1)
+                    old_marker = self.manager.to_pixel(self.markers[i - 1][2], 1)
 
-                    #if (i + 1) % 2 == 0:
-                    #    cv2.line(coronal_image, self.markers[i - 1][0], marker[0], self.primary_color, 1)
+                    ml_diff = (new_marker[0] - old_marker[0]) * fraction
+                    dv_diff = (new_marker[1] - old_marker[1]) * fraction
 
-                    cv2.putText(coronal_image, "M"+str(i), tuple([mark + 5 for mark in marker[0]]), font,  .5, self.primary_color, 1, cv2.LINE_AA)
-                else:
-                    size = max(.5 - abs(self.manager.coronal_index - marker[1]) * .01, .2)
-                    print(size, (self.manager.coronal_index, marker[1]))
-                    self.place_cross(coronal_image, marker[0],self.primary_color)
+                    cv2.line(sagittal_image, old_marker, new_marker, self.second_color, 1)
+                    cv2.circle(sagittal_image, old_marker, 2, self.second_color, -1)
+                    cv2.circle(sagittal_image, new_marker, 2, self.second_color, -1)
 
-                    cv2.putText(coronal_image, "M"+str(i), tuple([mark + 5 for mark in marker[0]]), font,  size, self.primary_color, 1, cv2.LINE_AA)
+                    start = np.array([old_marker[0] + ml_diff, old_marker[1] + dv_diff], dtype = int)
 
-                if (i + 1) % 2 == 0:
-                    cv2.line(coronal_image, self.markers[i - 1][0], marker[0], self.primary_color, 1)
+                    cv2.circle(sagittal_image, tuple(start), 4, self.primary_color, 1)
 
-                coord_float=str_to_float(self.manager.coordinate[1])
-                if (i + 1) % 2 == 0:
+            size = max(.7 - abs(coord_float - marker[2][1]) * .2, .2)
+            new_marker = self.manager.to_pixel(marker[2], 1)
+            self.place_cross(sagittal_image, new_marker, self.primary_color)
+            cv2.putText(sagittal_image, "M" + str(i), tuple([mark + 5 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
 
-                    if self.markers[i - 1][2][1] > coord_float > marker[2][1] or self.markers[i - 1][2][1] < coord_float < marker[2][1]:
-                        fraction = (coord_float - self.markers[i - 1][2][1])/(marker[2][1] - self.markers[i - 1][2][1])
 
-                        new_marker = self.manager.to_pixel(marker[2], 1)
-                        old_marker = self.manager.to_pixel(self.markers[i - 1][2], 1)
+            coord_float = -str_to_float(self.manager.coordinate[0])
 
-                        ml_diff = (new_marker[0] - old_marker[0]) * fraction
-                        dv_diff = (new_marker[1] - old_marker[1]) * fraction
+            if (i + 1) % 2 == 0:
 
-                        cv2.line(sagittal_image, old_marker, new_marker, self.second_color, 1)
-                        cv2.circle(sagittal_image, old_marker, 2, self.second_color, -1)
-                        cv2.circle(sagittal_image, new_marker, 2, self.second_color, -1)
+                if self.markers[i - 1][2][0] > coord_float > marker[2][0] or self.markers[i - 1][2][0] < coord_float < marker[2][0]:
 
-                        start = np.array([old_marker[0] + ml_diff, old_marker[1] + dv_diff], dtype = int)
+                    fraction = (coord_float - self.markers[i - 1][2][0])/(marker[2][0] - self.markers[i - 1][2][0])
 
-                        cv2.circle(sagittal_image, tuple(start), 4, self.primary_color, -1)
+                    new_marker = self.manager.to_pixel(marker[2], 0)
+                    old_marker = self.manager.to_pixel(self.markers[i - 1][2], 0)
+                    ml_diff = (new_marker[0] - old_marker[0]) * fraction
+                    dv_diff = (new_marker[1] - old_marker[1]) * fraction
 
-                size = max(.7 - abs(coord_float - marker[2][1]) * .2, .2)
-                new_marker = self.manager.to_pixel(marker[2], 1)
-                self.place_cross(sagittal_image, new_marker, self.primary_color)
-                cv2.putText(sagittal_image, "M" + str(i), tuple([mark + 5 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
+                    cv2.line(coronal_image, old_marker, new_marker, self.second_color, 1)
+                    cv2.circle(coronal_image, old_marker, 2, self.second_color, -1)
+                    cv2.circle(coronal_image, new_marker, 2, self.second_color, -1)
 
-            else:
+                    start = np.array([old_marker[0] + ml_diff, old_marker[1] + dv_diff], dtype = int)
 
-                if marker[1] == self.manager.sagittal_index:
-                    self.place_cross(sagittal_image, marker[0], self.primary_color)
+                    cv2.circle(coronal_image, tuple(start), 4, self.primary_color, 1)
 
-                    if (i + 1) % 2 == 0:
-                        cv2.line(sagittal_image, self.markers[i - 1][0], marker[0], self.primary_color, 1)
+            size = max(.7 - abs(coord_float - marker[2][0]) * .2, .3)
+            new_marker = self.manager.to_pixel(marker[2], 0)
 
-                    cv2.putText(sagittal_image, "M" + str(i), tuple([mark + 5 for mark in marker[0]]), font, .5, self.primary_color, 1, cv2.LINE_AA)
-
-                coord_float = str_to_float(self.manager.coordinate[0])
-                if (i + 1) % 2 == 0:
-
-                    if self.markers[i - 1][2][0] > coord_float > marker[2][0] or self.markers[i - 1][2][0] < coord_float < marker[2][0]:
-
-                        fraction = (coord_float - self.markers[i - 1][2][0])/(marker[2][0] - self.markers[i - 1][2][0])
-
-                        new_marker = self.manager.to_pixel(marker[2], 0)
-                        old_marker = self.manager.to_pixel(self.markers[i - 1][2], 0)
-                        ml_diff = (new_marker[0] - old_marker[0]) * fraction
-                        dv_diff = (new_marker[1] - old_marker[1]) * fraction
-
-                        cv2.line(coronal_image, old_marker, new_marker, self.second_color, 1)
-                        cv2.circle(coronal_image, old_marker, 2, self.second_color, -1)
-                        cv2.circle(coronal_image, new_marker, 2, self.second_color, -1)
-
-                        start = np.array([old_marker[0] + ml_diff, old_marker[1] + dv_diff], dtype = int)
-
-                        cv2.circle(coronal_image, tuple(start), 4, self.primary_color, -1)
-
-                size = max(.7 - abs(coord_float - marker[2][0]) * .2, .3)
-                new_marker = self.manager.to_pixel(marker[2], 0)
-
-                self.place_cross(coronal_image, new_marker, self.primary_color)
-                cv2.putText(coronal_image, "M" + str(i), tuple([mark + 5 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
+            self.place_cross(coronal_image, new_marker, self.primary_color)
+            cv2.putText(coronal_image, "M" + str(i), tuple([mark + 5 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
 
         self.coronal_image, self.sagittal_image = coronal_image, sagittal_image
         return coronal_image, sagittal_image

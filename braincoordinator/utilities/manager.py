@@ -65,7 +65,7 @@ class Manager:
 
         if type ==0:
             #sagittal mm -> frontal pixels
-            return int(-marker[1] * self.coronal_ml[1] + self.coronal_ml[0]), int((marker[2]) * self.coronal_dv[1] + self.coronal_dv[0])
+            return int(marker[1] * self.coronal_ml[1] + self.coronal_ml[0]), int((marker[2]) * self.coronal_dv[1] + self.coronal_dv[0])
         else:
             return int(-marker[0] * self.sagittal_ap[1] + self.sagittal_ap[0]), int((marker[2]) * self.sagittal_dv[1] + self.sagittal_dv[0])
 
