@@ -302,7 +302,7 @@ class Manager:
         self.sagittal_dv = self.sagittal_dvs[self.sagittal_index]
 
     def load_abbr(self):
-        filepath = self.animal_path + '/acronyms.txt'
+        filepath = self.animal_path + '/abbreviations.txt'
         self.abbreviations = []
 
         with open(filepath) as fp:
