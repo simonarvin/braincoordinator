@@ -15,9 +15,23 @@ from braincoordinator.utilities.computations import *
 from braincoordinator.utilities.arguments import Arguments
 from braincoordinator.utilities.get_atlas import Getter
 
+from tkinter import *
+from tkinter import ttk
+import tkinter as tk
+from PIL import Image, ImageTk
+
 font = cv2.FONT_HERSHEY_SIMPLEX
 
 class Coordinator:
+    """
+    todo: musseplacering skal give et zoomed-billede nederst
+    Sagital slides skal spejles så der også er negative værdier
+    når man taster ting ind i marker, skal der komme cursor op på canvas
+    ---- se på paths, virker ikke helt (kan måske være to_pixels)
+    Gennemtænk marker-txt placering. Det kan gøres smartere, måske
+        bedre 3d
+        tykkelse af line
+    """
     def __init__(self, args, ap:float = 0, ml:float = 0, dv:float =0) -> None:
 
         self.arguments = Arguments(args)
@@ -52,9 +66,11 @@ class Coordinator:
 
         self.primary_color = [0, 0, 255]
         self.second_color = [50, 50, 255]
+        self.third_color = [150,150,150]
 
         self.x, self.y = [0,0], [0,0]
         self.hover_window = 0
+        self.setup_manual_prompt()
 
         self.print_instructions()
 
@@ -85,6 +101,301 @@ class Coordinator:
         """
 
         print(instructions)
+
+    def img_to_tk(self, img):
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        return ImageTk.PhotoImage(Image.fromarray(img))
+
+    def setup_manual_prompt(self):
+        self.window = window = Tk()
+        window.title("Welcome to TutorialsPoint")
+        #window.geometry('300x200')
+        #window.configure(background = "white")
+        self.coronal_txt = StringVar()
+        self.coronal_txt.set("move cursor to canvas")
+        Label(window,textvariable = self.coronal_txt, height = 2).grid(row = 0, column = 0, columnspan =5)
+
+        Label(window ,text = "marker").grid(row = 2,column = 0)
+
+        Label(window ,text = "ap").grid(row = 3,column = 0)
+        Label(window ,text = "ml").grid(row = 4,column = 0)
+        Label(window ,text = "dv").grid(row = 5,column = 0)
+        self.tkt_msg = StringVar()
+
+        Label(window ,textvariable = self.tkt_msg).grid(row = 7,column = 1)
+
+        def ignore_letters(e):
+            key = e.char
+            if key in ["a", "s", "z", "x", "d", "f"]:
+
+                #self.window.focus_set()
+                self.tkt_key(key, False)
+                return "break"
+
+
+        def coord_callback(*args):
+            ap = ml = dv = -99
+
+            try:
+                ap = float(eval(self.tkt_ap.get()))
+            except:
+                pass
+
+            try:
+                ml = float(eval(self.tkt_ml.get()))
+            except:
+                pass
+
+            try:
+                dv = float(eval(self.tkt_dv.get()))
+            except:
+                pass
+
+            point = (ap, ml, dv)
+            pixels_point_coronal = self.manager.to_pixel(point, 0)
+            pixels_point_sagittal = self.manager.to_pixel(point, 1)
+
+            coronal_image, sagittal_image = self.update()
+
+            if ap != -99:
+                sagittal_image[:, pixels_point_sagittal[0]] = self.third_color
+
+            if dv != -99:
+                sagittal_image[pixels_point_sagittal[1], :] = self.third_color
+                coronal_image[pixels_point_coronal[1], :] = self.third_color
+
+            if ml != -99:
+                coronal_image[:,pixels_point_coronal[0]] = self.third_color
+
+
+
+            self.update_sagittal_tkt(sagittal_image)
+            self.update_coronal_tkt(coronal_image)
+
+
+        self.tkt_ap = Entry(window)
+        self.tkt_ap.grid(row = 3,column = 1)
+        self.tkt_ap.bind('<Return>', coord_callback)
+        self.tkt_ap.bind('<Key>', ignore_letters)
+
+
+        self.tkt_ml = Entry(window)
+        self.tkt_ml.grid(row = 4,column = 1)
+        self.tkt_ml.bind('<Return>', coord_callback)
+        self.tkt_ml.bind('<Key>', ignore_letters)
+
+        self.tkt_dv = Entry(window)
+        self.tkt_dv.grid(row = 5,column = 1)
+        self.tkt_dv.bind('<Return>', coord_callback)
+        self.tkt_dv.bind('<Key>', ignore_letters)
+
+
+        def mark():
+
+            #print(self.tkt_ap.get(), self.tkt_ml.get(), self.tkt_dv.get())
+            if self.tkt_selection == 0:
+                print("NEW")
+            try:
+                point = (float(eval(self.tkt_ap.get())), float(eval(self.tkt_ml.get())), float(eval(self.tkt_dv.get())))
+            except Exception as e:
+                print("invalid coordinates")
+                print(e)
+            nearest_coronal, nearest_sagittal = self.manager.find_nearest_slices(point[:2])
+
+
+            pixels_point = self.manager.to_pixel(point, 0) #self.manager.convert_to_pixels(point)
+
+            self.markers.append([pixels_point, nearest_coronal, point, 0])
+            label=f"M{len(self.markers)-1}"
+            self.drop_down['menu'].add_command(label=label, command=tk._setit(self.tkt_variable, label))
+
+            coronal_image, sagittal_image = self.update()
+
+            self.update_coronal_tkt(coronal_image)
+            self.update_sagittal_tkt(sagittal_image)
+
+
+        ttk.Button(window ,text="save",command=mark).grid(row=6,column=0)
+
+
+
+    def manual_marker(self):
+        OPTIONS = ["new"] + [f"M{i}" for i,_ in enumerate(self.markers)]
+        self.tkt_variable = variable = StringVar(self.window)
+        self.tkt_selection = 0
+
+        def go_new():
+            variable.set(OPTIONS[0])
+
+
+        gonew_btn = ttk.Button(self.window ,text="<< transfer to new",command=go_new)
+        gonew_btn.grid(row=2, column=2)
+
+        def callback(*args):
+            OPTIONS = ["new"] + [f"M{i}" for i,_ in enumerate(self.markers)]
+            self.tkt_selection = selection = OPTIONS.index(variable.get())
+            if selection == 0:# new marker
+                self.tkt_msg.set("input new marker coords..")
+                gonew_btn["state"] = DISABLED
+
+                #self.tkt_ap.delete(0,END)
+                #self.tkt_ml.delete(0,END)
+                #self.tkt_dv.delete(0,END)
+            else:
+                self.tkt_msg.set(f"M{selection-1} loaded")
+                gonew_btn["state"] = "normal"
+                marker_coords = self.markers[selection - 1][2]
+                self.tkt_ap.delete(0,END)
+                self.tkt_ml.delete(0,END)
+                self.tkt_dv.delete(0,END)
+                self.tkt_ap.insert(0, marker_coords[0])
+                self.tkt_ml.insert(0, marker_coords[1])
+                self.tkt_dv.insert(0, marker_coords[2])
+
+                def remove_mark():
+                    # if pair, remove both. Open prompt first (are you sure)
+                    marker_index = self.tkt_selection - 1
+                    if len(self.markers)%2 == 0:
+                        #if self.tkt_selection == len(self.markers):
+                        self.paths.pop(marker_index//2 - 1)
+                        self.markers.pop(marker_index - 1)
+
+                    self.markers.pop(marker_index)
+
+                    self.drop_down['menu'].delete(self.tkt_selection )
+                    variable.set(OPTIONS[self.tkt_selection - 1])
+
+
+                    coronal_image, sagittal_image = self.update()
+
+                    self.update_coronal_tkt(coronal_image)
+                    self.update_sagittal_tkt(sagittal_image)
+
+                ttk.Button(self.window ,text="remove",command=remove_mark).grid(row=6,column=1)
+
+        variable.trace("w", callback)
+        variable.set(OPTIONS[0]) # default value
+
+        self.drop_down = OptionMenu(self.window, variable, *list(OPTIONS))
+        self.drop_down.grid(row = 2,column = 1)
+
+
+        gonew_btn["state"] = DISABLED
+
+        def close_():
+            self.window.destroy()
+
+        ttk.Button(self.window ,text="close",command=close_).grid(row=6, column=2)
+
+        coronal_image, sagittal_image = self.update()
+        coronal_image=self.img_to_tk(coronal_image)
+        self.tkt_coronal = Label(self.window, image = coronal_image,bd=0)
+        self.tkt_coronal.image = coronal_image
+        self.tkt_coronal.grid(row=1, column=0, columnspan=5)
+
+        self.tkt_coronal.bind('<Motion>', self.frontal_mouse_move)
+        self.window.bind('<Key>',self.tkt_key)
+
+        sagittal_image=self.img_to_tk(sagittal_image)
+        self.tkt_sagittal = Label(self.window, image = sagittal_image,bd=1)
+        self.tkt_sagittal.image = sagittal_image
+        self.tkt_sagittal.grid(row=1, column=5, columnspan = 5)
+        self.tkt_sagittal.bind('<Motion>', self.sagittal_mouse_move)
+
+        self.window.mainloop()
+        self.setup_manual_prompt()
+
+    def tkt_key(self, e, type = True):
+        if type:
+            key =e.char
+        else:
+            key = e
+
+        if key=="d":
+            point = (self.x[self.hover_window], self.y[self.hover_window])
+            self.place_marker(point)
+
+        elif key == "x":
+            self.manager.next("sagittal")
+
+        elif key == "z":
+            self.manager.previous("sagittal")
+
+        elif key == "a":
+            self.manager.next("coronal")
+
+        elif key == "s":
+            self.manager.previous("coronal")
+        else:
+            return
+
+        coronal_image, sagittal_image = self.update()
+
+        self.update_coronal_tkt(coronal_image)
+        self.update_sagittal_tkt(sagittal_image)
+
+
+    def frontal_mouse_move(self, e) -> None:
+        x,y = e.x,e.y
+
+        self.hover_window = 0
+
+        if self.selected_marker != None:
+            if self.selected_marker[3] == self.hover_window:
+                self.manager.update_marker(self.selected_marker, (x, y), self.hover_window)
+                coronal_image, sagittal_image = self.update()
+                cv2.imshow("Sagittal", sagittal_image)
+
+        coronal_image= self.coronal_image.copy()
+        try:
+            coronal_image[:,x] = self.cursor_color
+            coronal_image[y,:] = self.cursor_color
+        except:
+            return
+
+        coords = self.manager.convert_to_mm((x,y), 0)
+        #cv2.putText(coronal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
+        self.coronal_txt.set(f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}")
+
+        self.x[0], self.y[0] = x, y
+        self.update_coronal_tkt(coronal_image)
+
+
+    def update_coronal_tkt(self, rawimg):
+        img = self.img_to_tk(rawimg)
+        self.tkt_coronal.configure(image=img)
+        self.tkt_coronal.image = img
+
+    def sagittal_mouse_move(self, e) -> None:
+        x, y = e.x, e.y
+
+        self.hover_window = 1
+
+        if self.selected_marker != None:
+            if self.selected_marker[3] == self.hover_window:
+                self.manager.update_marker(self.selected_marker, (x, y), self.hover_window)
+                coronal_image, sagittal_image = self.update()
+                cv2.imshow("Coronal", coronal_image)
+
+        sagittal_image = self.sagittal_image.copy()
+        try:
+            sagittal_image[:,x] = self.cursor_color
+            sagittal_image[y,:] = self.cursor_color
+        except:
+            return
+
+        coords = self.manager.convert_to_mm((x,y), 1)
+        cv2.putText(sagittal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
+
+        #cv2.imshow("Sagittal", sagittal_image)
+        self.update_sagittal_tkt(sagittal_image)
+
+        self.x[1], self.y[1] = x, y
+
+    def update_sagittal_tkt(self, rawimg):
+        img = self.img_to_tk(rawimg)
+        self.tkt_sagittal.configure(image=img)
+        self.tkt_sagittal.image = img
 
     def frontal_mouse(self, event, x:float, y:float, flags, param) -> None:
 
@@ -153,8 +464,11 @@ class Coordinator:
         self.x[1], self.y[1] = x, y
 
     def place_cross(self, source: np.ndarray, point: tuple, color: tuple) -> None:
-        source[point[1] - 7:point[1] + 8, point[0]] = color
-        source[point[1], point[0] - 7:point[0] + 8] = color
+
+        source[max(point[1] - 7, 0):point[1] + 8, point[0]] = color
+
+        source[point[1], max(point[0] - 7,0):point[0] + 8] = color
+
         #cv2.circle(source, point,4,color,1)
 
 
@@ -257,14 +571,24 @@ class Coordinator:
 
 
             if marker[3] == 0: #frontal
+
                 if marker[1] == self.manager.coronal_index:
 
                     self.place_cross(coronal_image, marker[0],self.primary_color)
 
-                    if (i + 1) % 2 == 0:
-                        cv2.line(coronal_image, self.markers[i - 1][0], marker[0], self.primary_color, 1)
+                    #if (i + 1) % 2 == 0:
+                    #    cv2.line(coronal_image, self.markers[i - 1][0], marker[0], self.primary_color, 1)
 
                     cv2.putText(coronal_image, "M"+str(i), tuple([mark + 5 for mark in marker[0]]), font,  .5, self.primary_color, 1, cv2.LINE_AA)
+                else:
+                    size = max(.5 - abs(self.manager.coronal_index - marker[1]) * .01, .2)
+                    print(size, (self.manager.coronal_index, marker[1]))
+                    self.place_cross(coronal_image, marker[0],self.primary_color)
+
+                    cv2.putText(coronal_image, "M"+str(i), tuple([mark + 5 for mark in marker[0]]), font,  size, self.primary_color, 1, cv2.LINE_AA)
+
+                if (i + 1) % 2 == 0:
+                    cv2.line(coronal_image, self.markers[i - 1][0], marker[0], self.primary_color, 1)
 
                 coord_float=str_to_float(self.manager.coordinate[1])
                 if (i + 1) % 2 == 0:
@@ -286,7 +610,7 @@ class Coordinator:
 
                         cv2.circle(sagittal_image, tuple(start), 4, self.primary_color, -1)
 
-                size = max(.7 - abs(coord_float - marker[2][1]) * .2, .3)
+                size = max(.7 - abs(coord_float - marker[2][1]) * .2, .2)
                 new_marker = self.manager.to_pixel(marker[2], 1)
                 self.place_cross(sagittal_image, new_marker, self.primary_color)
                 cv2.putText(sagittal_image, "M" + str(i), tuple([mark + 5 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
@@ -323,6 +647,7 @@ class Coordinator:
 
                 size = max(.7 - abs(coord_float - marker[2][0]) * .2, .3)
                 new_marker = self.manager.to_pixel(marker[2], 0)
+
                 self.place_cross(coronal_image, new_marker, self.primary_color)
                 cv2.putText(coronal_image, "M" + str(i), tuple([mark + 5 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
 
@@ -331,7 +656,6 @@ class Coordinator:
 
 
     def clear(self):
-
         # for windows
         if name == 'nt':
             _ = system('cls')
@@ -340,93 +664,17 @@ class Coordinator:
         else:
             _ = system('clear')
 
-    # def copy_paste_xcl(self, startCol, startRow, endCol, endRow, sheet, data_out):
-    #
-    #     rangeSelected = []
-    #     #Loops through selected Rows
-    #     for i in range(startRow, endRow + 1,1):
-    #     #Appends the row to a RowSelected list
-    #         rowSelected = []
-    #         for j in range(startCol,endCol+1,1):
-    #             rowSelected.append(sheet.cell(row = i, column = j).value)
-    #         #Adds the RowSelected List and nests inside the rangeSelected
-    #         rangeSelected.append(rowSelected)
-    #
-    #     q=0
-    #     for path in data_out:
-    #
-    #         #n+=1
-    #
-    #         countRow = 0
-    #
-    #         #todo: add one marker also
-    #
-    #         rangeSelected[5][1]=path[3] #front ang
-    #         rangeSelected[6][1]=path[4] #sag ang
-    #         rangeSelected[7][1]=path[5] #distance
-    #
-    #         rangeSelected[13][1]="=B{}-180/PI()*MOD(G3,PI())".format(12+17*q)
-    #         rangeSelected[14][1]="=B{}-180/PI()*MOD(G4,PI())".format(13+17*q)
-    #         rangeSelected[15][1]="=((B{}-B{})^2+(C{}-C{})^2+(D{}-D{})^2)^(1/2)".format(18+17*q,19+17*q,18+17 *q,19+17*q,18+17*q,19+17*q)
-    #
-    #         #Marker 1
-    #
-    #         rangeSelected[3][0]="m{}".format(path[0]-1)
-    #         rangeSelected[3][1]="=B3 + {}".format(path[1][2][0])#ap
-    #         rangeSelected[3][2]="=C3 + {}".format(path[1][2][1])#ml
-    #         rangeSelected[3][3]="=D3 + {}".format(path[1][2][2])#dv
-    #
-    #         #Marker 2
-    #
-    #         rangeSelected[4][0]="m{}".format(path[0])
-    #         rangeSelected[4][1]="=B3 + {}".format(path[2][2][0])#ap
-    #         rangeSelected[4][2]="=C3 + {}".format(path[2][2][1])#ml
-    #         rangeSelected[4][3]="=D3 + {}".format(path[2][2][2])#dv
-    #
-    #         #AP
-    #         rangeSelected[11][1]="=B3 + G7 * (B{} - B3) - H7 * (C{}-C3)".format(10 + 17*q, 10+17*q)
-    #         rangeSelected[12][1]="=B3 + G7 * (B{} - B3) - H7 * (C{}-C3)".format(11 + 17 *q, 11+17*q)
-    #
-    #
-    #         rangeSelected[11][0]="m{}".format(path[0] -1)
-    #         rangeSelected[12][0]="m{}".format(path[0])
-    #         #ML
-    #         rangeSelected[11][2]="=H7 * (B{} - B3) +G7 * (C{} - C3)".format(10 + 17 * q, 10 + 17 * q)
-    #         rangeSelected[12][2]="=H7 * (B{} - B3) +G7 * (C{} - C3)".format(11 + 17 * q, 11 + 17 * q)
-    #
-    #         #DV
-    #         rangeSelected[11][3]="=D{}".format(10 + 17 * q)
-    #         rangeSelected[12][3]="=D{}".format(11 + 17 * q)
-    #
-    #         q+=1
-    #
-    #         for i in range(startRow, endRow+1,1):
-    #             countCol = 0
-    #             for j in range(startCol, endCol+1,1):
-    #
-    #                 sheet.cell(row = i, column = j).value = rangeSelected[countRow][countCol]
-    #                 countCol += 1
-    #             countRow += 1
-    #         startRow += 17
-    #         endRow += 17
+
+    def place_marker(self, point):
+
+        if self.hover_window==0:
+            self.markers.append([point, self.manager.coronal_index, self.manager.convert_to_mm(point, 0), self.hover_window])
+        else:
+            self.markers.append([point, self.manager.sagittal_index, self.manager.convert_to_mm(point, 1), self.hover_window])
+        label= f"M{len(self.markers)-1}"
+        self.drop_down['menu'].add_command(label=label, command=tk._setit(self.tkt_variable, label))
 
 
-    # def save_data(self):
-    #     if len(self.paths) == 0:
-    #         print("No paths marked.")
-    #         return
-    #
-    #     now = datetime.now().strftime("%Y%m%d%H%M%S")
-    #     new_save = f"{self.dir_path}/data/{self.animal}_coordinates_{now}.coords"
-    #     np.write()
-    #
-    #     #new_save = self.dir_path+"/data/{}_coordinates_{}.xlsx".format(self.animal, time)
-    #     #copyfile(self.dir_path+"/data/do-not-delete.xlsx", new_save)
-    #     #workbook = load_workbook(filename=new_save)
-    #     #sheet = workbook.active
-    #     #self.copy_paste_xcl(1, 7, 4, 22, sheet, self.paths)
-    #     #workbook.save(filename = new_save)
-    #     print("Data saved")
 
     def keyHandler(self, key):
         if key == ord("x"):
@@ -441,15 +689,17 @@ class Coordinator:
         elif key == ord("s"):
             self.manager.previous("coronal")
 
+        elif key == ord("p"):
+            self.manual_marker()
+
         elif key==ord("d"):
             try:
-                point = (self.x[self.hover_window],self.y[self.hover_window])
-                if self.hover_window==0:
-                    self.markers.append([point, self.manager.coronal_index, self.manager.convert_to_mm(point, 0), self.hover_window])
-                else:
-                    self.markers.append([point, self.manager.sagittal_index, self.manager.convert_to_mm(point, 1), self.hover_window])
+                point = (self.x[self.hover_window], self.y[self.hover_window])
+                self.place_marker(point)
+
             except AttributeError:
                 print("Click image once to gain focus.")
+
 
         elif key == ord("f"):
             try:

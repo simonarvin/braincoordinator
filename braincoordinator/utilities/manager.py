@@ -18,8 +18,13 @@ class Manager:
         self.coronal_index = 0
         self.sagittal_index = 0
         self.reference = reference
+        self.screen_width = 1920 #default
+        self.interpolation=cv2.INTER_AREA #cv2.INTER_NEAREST#cv2.INTER_LANCZOS4
 
         self.parse_slices()
+
+        self.get_native_sizes()
+        self.get_tkt_scalar()
 
         self.preload = int(preload)
         if self.preload == 1:
@@ -29,13 +34,40 @@ class Manager:
         self.retrieve_sagittal_scale()
 
 
+    def get_native_sizes(self):
+        coronal_tuple = self.coronals[0]
+
+        if coronal_tuple[1] != "":
+            coronal_str = "b" + coronal_tuple[0] + "a" + coronal_tuple[1]
+        else:
+            coronal_str = "b" + coronal_tuple[0]
+
+        coronal_image = cv2.imread(self.animal_path+"/{}.jpg".format(coronal_str), cv2.IMREAD_UNCHANGED)
+        self.coronal_size = coronal_image.shape[:-1]
+
+        ml = self.sagittals[self.sagittal_index]
+        sagittal_image = cv2.imread(self.animal_path+"/l{}.jpg".format(ml))
+        self.sagittal_size = sagittal_image.shape[:-1]
+
+    def get_tkt_scalar(self):
+        #1920 width default
+        max_image_width = self.sagittal_size[1] + self.coronal_size[1]
+
+        if self.screen_width * .8 < max_image_width:
+            self.resize_factor = round(self.screen_width * .8/max_image_width * .935, 3)
+
+
+            #self.new_sagittal_size = (int(self.sagittal_size[1] * self.screen_scalar), int(self.sagittal_size[0] * self.screen_scalar))
+            #self.new_coronal_size = (int(self.coronal_size[1] * self.screen_scalar), int(self.coronal_size[0] * self.screen_scalar))
+
+
     def to_pixel(self, marker, type):
 
         if type ==0:
             #sagittal mm -> frontal pixels
-            return int(marker[1] * self.coronal_ml[1] + self.coronal_ml[0]), int((marker[2]) * self.coronal_dv[1] + self.coronal_dv[0])
+            return int(-marker[1] * self.coronal_ml[1] + self.coronal_ml[0]), int((marker[2]) * self.coronal_dv[1] + self.coronal_dv[0])
         else:
-            return int(marker[0] * self.sagittal_ap[1] + self.sagittal_ap[0]), int((marker[2]) * self.sagittal_dv[1] + self.sagittal_dv[0])
+            return int(-marker[0] * self.sagittal_ap[1] + self.sagittal_ap[0]), int((marker[2]) * self.sagittal_dv[1] + self.sagittal_dv[0])
 
 
     def update_marker(self, marker, point, hover_window):
@@ -93,13 +125,13 @@ class Manager:
             coronal_image = cv2.imread(self.animal_path+"/{}.jpg".format(coronal_str), cv2.IMREAD_UNCHANGED)
             if self.resize_factor != 1:
                 size = coronal_image.shape
-                coronal_image = cv2.resize(coronal_image, (int(size[1] * self.resize_factor), int(size[0] * self.resize_factor)), interpolation = cv2.INTER_AREA)
+                coronal_image = cv2.resize(coronal_image, None, fx=self.resize_factor, fy=self.resize_factor, interpolation = self.interpolation)
 
             sagittal_image = cv2.imread(self.animal_path+"/l{}.jpg".format(ml))
             if self.resize_factor != 1:
                 size = sagittal_image.shape
 
-                sagittal_image = cv2.resize(sagittal_image, (int(size[1] * self.resize_factor), int(size[0] * self.resize_factor)),interpolation = cv2.INTER_AREA)
+                sagittal_image = cv2.resize(sagittal_image, None, fx=self.resize_factor, fy=self.resize_factor,interpolation = self.interpolation)
 
         return coronal_image, sagittal_image
 
@@ -112,19 +144,28 @@ class Manager:
 
         return np.round(np.array(raw_array), 2)
 
+    def convert_to_pixels(self, marker) -> np.ndarray:
+
+        raw_array = [-(marker[0] * self.sagittal_ap[1] - self.sagittal_ap[0]), -(marker[1] * self.coronal_ml[1] - self.coronal_ml[0]), -(marker[2] * self.sagittal_dv[1] - self.sagittal_dv[0])]
+
+        return np.array(raw_array, dtype=int)
+
     def find_nearest_value(self, array:np.ndarray, value:float) -> int:
         index = (np.abs(array - value)).argmin()
         return index
 
-    def find_nearest_slices(self) -> tuple:
+    def find_nearest_slices(self, coordinate = None) -> tuple:
+
+        if coordinate == None:
+            coordinate = self.coordinate
 
         split_float = np.delete(np.array(self.coronals), int(self.reference==0), 1)
 
         split_float = np.array([str_to_float(coronal_str[0]) for coronal_str in split_float])
-        nearest_coronal = self.find_nearest_value(split_float, float(self.coordinate[0]))
+        nearest_coronal = self.find_nearest_value(split_float, float(coordinate[0]))
 
         split_float = np.array([str_to_float(sagittal_str) for sagittal_str in self.sagittals])
-        nearest_sagittal = self.find_nearest_value(split_float, float(self.coordinate[1]))
+        nearest_sagittal = self.find_nearest_value(split_float, float(coordinate[1]))
 
         return nearest_coronal, nearest_sagittal
 
@@ -146,7 +187,7 @@ class Manager:
 
             if self.resize_factor != 1:
                 size = coronal_image.shape
-                coronal_image = cv2.resize(coronal_image, (int(size[1]*self.resize_factor),int(size[0]*self.resize_factor)),interpolation=cv2.INTER_AREA)
+                coronal_image = cv2.resize(coronal_image, (int(size[1]*self.resize_factor),int(size[0]*self.resize_factor)),interpolation=self.interpolation)
             self.coronal_images[index] = coronal_image
 
             print("Loading coronal {}/{}".format(index, len(self.coronals) - 1))
@@ -158,7 +199,7 @@ class Manager:
             if self.resize_factor != 1:
                 size = sagittal_image.shape
 
-                sagittal_image = cv2.resize(sagittal_image, (int(size[1] * self.resize_factor), int(size[0] * self.resize_factor)), interpolation=cv2.INTER_AREA)
+                sagittal_image = cv2.resize(sagittal_image, (int(size[1] * self.resize_factor), int(size[0] * self.resize_factor)), interpolation=self.interpolation)
 
             print("Loading sagittal {}/{}".format(index, len(self.sagittals) - 1))
             self.sagittal_images[index] = sagittal_image
@@ -226,7 +267,9 @@ class Manager:
                self.sagittal_aps.append(split)
                line = fp.readline()
 
-        self.sagital_aps_txt = self.sagittal_aps.pop()
+
+        self.sagital_aps_txt = self.sagittal_aps.pop().astype(int)
+        self.sagittal_aps = np.array(self.sagittal_aps, dtype=int)
 
         filepath = self.animal_path + '/sagittal_dv.sc'
         self.sagittal_dvs = []
@@ -238,8 +281,9 @@ class Manager:
                split = np.array(split, dtype = int) * self.resize_factor
                self.sagittal_dvs.append(split)
                line = fp.readline()
-        self.sagital_dvs_txt = self.sagittal_dvs.pop()
 
+        self.sagital_dvs_txt = self.sagittal_dvs.pop().astype(int)
+        self.sagittal_dvs = np.array(self.sagittal_dvs, dtype=int)
     #    self.sagittal_dvs=np.array(self.sagittal_dvs)
     #    ll=np.concatenate((np.flip(self.sagittal_dvs[1:],axis=0),self.sagittal_dvs))
     #    for l in ll:
