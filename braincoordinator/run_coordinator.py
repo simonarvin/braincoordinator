@@ -22,20 +22,64 @@ from PIL import Image, ImageTk
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 
+class Example(tk.Frame):
+    def __init__(self, parent, data):
+
+        tk.Frame.__init__(self, parent)
+
+        self.canvas = tk.Canvas(self, borderwidth=0, background="#ffffff")
+
+        self.frame = tk.Frame(self.canvas, background="#ffffff")
+        self.hsb = tk.Scrollbar(self, orient="horizontal", command=self.canvas.xview)
+
+        self.vsb = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.vsb.set)
+        self.canvas.configure(xscrollcommand=self.hsb.set)
+
+        self.vsb.pack(side="right", fill="y")
+        self.hsb.pack(side="bottom", fill="x")
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.canvas.create_window((4,4), window=self.frame, anchor="nw",
+                                  tags="self.frame")
+
+        self.frame.bind("<Configure>", self.onFrameConfigure)
+        self.data = data
+
+        self.populate()
+
+    def populate(self):
+
+        for row, abbr in enumerate(self.data):
+            tk.Label(self.frame, text=abbr["abbreviation"], borderwidth="1",
+                     relief="solid").grid(row=row, column=0,sticky=N+S+E+W)
+
+            tk.Label(self.frame, text=abbr["description"], anchor="w").grid(row=row, column=1,sticky=N+S+E+W)
+
+
+    def onFrameConfigure(self, event):
+        '''Reset the scroll region to encompass the inner frame'''
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
 class Coordinator:
     """
     todo: musseplacering skal give et zoomed-billede nederst
     Sagital slides skal spejles så der også er negative værdier
     når man taster ting ind i marker, skal der komme cursor op på canvas
-    ---- se på paths, virker ikke helt (kan måske være to_pixels)
+    X---- se på paths, virker ikke helt (kan måske være to_pixels)
     Gennemtænk marker-txt placering. Det kan gøres smartere, måske
         bedre 3d
         tykkelse af line
+    Fix remove markers
+    Add acronyms
+    Fjern gamle GUI
     """
+
     def __init__(self, args, ap:float = 0, ml:float = 0, dv:float =0) -> None:
 
         self.arguments = Arguments(args)
         self.cursor_color = (0,0,0)
+        self.bg_color = "#262626"
 
         if self.get(self.arguments.get):
             return
@@ -64,8 +108,8 @@ class Coordinator:
         self.markers = []
         self.paths = []
 
-        self.primary_color = [0, 0, 255]
-        self.second_color = [50, 50, 255]
+        self.primary_color = [255, 0, 0]
+        self.second_color = [255, 50, 50]
         self.third_color = [150,150,150]
 
         self.x, self.y = [0,0], [0,0]
@@ -102,22 +146,32 @@ class Coordinator:
 
         print(instructions)
 
+    def abbr_popup(self):
+        win = tk.Toplevel()
+        win.wm_title("Abbreviations")
+        win.geometry("400x200")
+
+
+        example = Example(win, self.manager.abbreviations)
+        example.pack(side="top", fill="both", expand=True)
+
     def img_to_tk(self, img):
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         return ImageTk.PhotoImage(Image.fromarray(img))
 
     def setup_manual_prompt(self):
         self.window = window = Tk()
+        #self.window.configure(background=self.bg_color)
         window.title("stereotaxic coordinator")
         #window.geometry('300x200')
         #window.configure(background = "white")
         self.coronal_txt = StringVar()
         self.coronal_txt.set("move cursor to canvas")
-        Label(window,textvariable = self.coronal_txt, height = 2).grid(row = 0, column = 0, columnspan =5)
+        Label(window,textvariable = self.coronal_txt, height = 1).grid(row = 0, column = 0, columnspan =5)
 
         self.sagittal_txt = StringVar()
         self.sagittal_txt.set("move cursor to canvas")
-        Label(window,textvariable = self.sagittal_txt, height = 2).grid(row = 0, column = 5, columnspan =5)
+        Label(window,textvariable = self.sagittal_txt, height = 1).grid(row = 0, column = 5, columnspan =5)
 
         Label(window ,text = "marker").grid(row = 2,column = 0)
 
@@ -221,6 +275,11 @@ class Coordinator:
 
         ttk.Button(window ,text="save",command=mark).grid(row=6,column=0)
 
+        Label(window ,text = "Abbreviations").grid(row = 2,column = 7, columnspan=3)
+        example = Example(window, self.manager.abbreviations)
+
+        example.grid(row=3, column=7, rowspan=5, columnspan=3,sticky=N+S+E+W)
+
 
 
     def manual_marker(self):
@@ -281,6 +340,7 @@ class Coordinator:
         variable.set(OPTIONS[0]) # default value
 
         self.drop_down = OptionMenu(self.window, variable, *list(OPTIONS))
+        #self.drop_down.configure(background = "yellow")
         self.drop_down.grid(row = 2,column = 1)
 
 
@@ -302,7 +362,7 @@ class Coordinator:
         menubar.add_cascade(label="Edit", menu=editmenu)
 
         helpmenu = Menu(menubar, tearoff=0)
-        helpmenu.add_command(label="Acronyms", command=lambda:None)
+        helpmenu.add_command(label="Abbreviations", command=self.abbr_popup)
         helpmenu.add_command(label="About", command=lambda:None)
         menubar.add_cascade(label="Help", menu=helpmenu)
 
@@ -596,7 +656,13 @@ class Coordinator:
             coord_float=str_to_float(self.manager.coordinate[1])
             if (i + 1) % 2 == 0:
 
-                if self.markers[i - 1][2][1] > coord_float > marker[2][1] or self.markers[i - 1][2][1] < coord_float < marker[2][1]:
+                if self.markers[i - 1][2][1] == marker[2][1] == coord_float:
+                    new_marker = self.manager.to_pixel(marker[2], 1)
+                    old_marker = self.manager.to_pixel(self.markers[i - 1][2], 1)
+
+                    cv2.line(sagittal_image, old_marker, new_marker, self.second_color, 1)
+
+                elif self.markers[i - 1][2][1] > coord_float > marker[2][1] or self.markers[i - 1][2][1] < coord_float < marker[2][1]:
                     fraction = (coord_float - self.markers[i - 1][2][1])/(marker[2][1] - self.markers[i - 1][2][1])
 
                     new_marker = self.manager.to_pixel(marker[2], 1)
@@ -606,8 +672,7 @@ class Coordinator:
                     dv_diff = (new_marker[1] - old_marker[1]) * fraction
 
                     cv2.line(sagittal_image, old_marker, new_marker, self.second_color, 1)
-                    cv2.circle(sagittal_image, old_marker, 2, self.second_color, -1)
-                    cv2.circle(sagittal_image, new_marker, 2, self.second_color, -1)
+
 
                     start = np.array([old_marker[0] + ml_diff, old_marker[1] + dv_diff], dtype = int)
 
@@ -615,15 +680,26 @@ class Coordinator:
 
             size = max(.7 - abs(coord_float - marker[2][1]) * .2, .2)
             new_marker = self.manager.to_pixel(marker[2], 1)
-            self.place_cross(sagittal_image, new_marker, self.primary_color)
-            cv2.putText(sagittal_image, "M" + str(i), tuple([mark + 5 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
+            sagittal_overlay = sagittal_image.copy()
 
+            self.place_cross(sagittal_overlay, new_marker, self.primary_color)
+
+            cv2.putText(sagittal_overlay, "M" + str(i), tuple([mark + 5 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
+            alpha = size/.7
+
+            cv2.addWeighted(sagittal_overlay, alpha, sagittal_image, 1 - alpha, 0, sagittal_image)
 
             coord_float = -str_to_float(self.manager.coordinate[0])
 
             if (i + 1) % 2 == 0:
 
-                if self.markers[i - 1][2][0] > coord_float > marker[2][0] or self.markers[i - 1][2][0] < coord_float < marker[2][0]:
+                if self.markers[i - 1][2][0] == marker[2][0] == coord_float:
+                    new_marker = self.manager.to_pixel(marker[2], 0)
+                    old_marker = self.manager.to_pixel(self.markers[i - 1][2], 0)
+
+                    cv2.line(coronal_image, old_marker, new_marker, self.second_color, 1)
+
+                elif self.markers[i - 1][2][0] > coord_float > marker[2][0] or self.markers[i - 1][2][0] < coord_float < marker[2][0]:
 
                     fraction = (coord_float - self.markers[i - 1][2][0])/(marker[2][0] - self.markers[i - 1][2][0])
 
@@ -633,8 +709,6 @@ class Coordinator:
                     dv_diff = (new_marker[1] - old_marker[1]) * fraction
 
                     cv2.line(coronal_image, old_marker, new_marker, self.second_color, 1)
-                    cv2.circle(coronal_image, old_marker, 2, self.second_color, -1)
-                    cv2.circle(coronal_image, new_marker, 2, self.second_color, -1)
 
                     start = np.array([old_marker[0] + ml_diff, old_marker[1] + dv_diff], dtype = int)
 
@@ -643,8 +717,13 @@ class Coordinator:
             size = max(.7 - abs(coord_float - marker[2][0]) * .2, .3)
             new_marker = self.manager.to_pixel(marker[2], 0)
 
-            self.place_cross(coronal_image, new_marker, self.primary_color)
-            cv2.putText(coronal_image, "M" + str(i), tuple([mark + 5 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
+            coronal_overlay = coronal_image.copy()
+            self.place_cross(coronal_overlay, new_marker, self.primary_color)
+            cv2.putText(coronal_overlay, "M" + str(i), tuple([mark + 5 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
+
+            alpha = size/.7
+
+            cv2.addWeighted(coronal_overlay, alpha, coronal_image, 1 - alpha, 0, coronal_image)
 
         self.coronal_image, self.sagittal_image = coronal_image, sagittal_image
         return coronal_image, sagittal_image

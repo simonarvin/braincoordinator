@@ -21,6 +21,7 @@ class Manager:
         self.screen_width = 1920 #default
         self.interpolation=cv2.INTER_AREA #cv2.INTER_NEAREST#cv2.INTER_LANCZOS4
 
+
         self.parse_slices()
 
         self.get_native_sizes()
@@ -32,6 +33,8 @@ class Manager:
 
         self.retrieve_coronal_scale()
         self.retrieve_sagittal_scale()
+
+        self.load_abbr()
 
 
     def get_native_sizes(self):
@@ -133,12 +136,12 @@ class Manager:
 
                 sagittal_image = cv2.resize(sagittal_image, None, fx=self.resize_factor, fy=self.resize_factor,interpolation = self.interpolation)
 
-        return coronal_image, sagittal_image
+        return cv2.cvtColor(coronal_image, cv2.COLOR_BGR2RGB), cv2.cvtColor(sagittal_image, cv2.COLOR_BGR2RGB)
 
     def convert_to_mm(self, marker, type:int) -> np.ndarray:
 
         if type == 0: #ap
-            raw_array = [-str_to_float(self.coronals[self.coronal_index][0]), (marker[0] - self.coronal_ml[0])/self.coronal_ml[1], (marker[1] - self.coronal_dv[0])/self.coronal_dv[1]]
+            raw_array = [str_to_float(self.coronals[self.coronal_index][0]), (marker[0] - self.coronal_ml[0])/self.coronal_ml[1], (marker[1] - self.coronal_dv[0])/self.coronal_dv[1]]
         else: #ml
             raw_array = [-(marker[0] - self.sagittal_ap[0])/self.sagittal_ap[1], str_to_float(self.sagittals[self.sagittal_index]), (marker[1] - self.sagittal_dv[0])/self.sagittal_dv[1]]
 
@@ -297,3 +300,18 @@ class Manager:
 
         self.sagittal_ap = self.sagittal_aps[self.sagittal_index]
         self.sagittal_dv = self.sagittal_dvs[self.sagittal_index]
+
+    def load_abbr(self):
+        filepath = self.animal_path + '/acronyms.txt'
+        self.abbreviations = []
+
+        with open(filepath) as fp:
+           line = fp.readline()
+           while line:
+               split = line.split(" ")
+               abbreviation = split[0]
+               if abbreviation != "\n":
+                   description = " ".join(split[1:])
+                   description = description.replace("\n", "")
+                   self.abbreviations.append({"abbreviation" : abbreviation, "description" : description})
+               line = fp.readline()
