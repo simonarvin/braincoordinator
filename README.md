@@ -15,7 +15,6 @@ Brain Coordinator is a Python 3-based stereotaxic coordinator compatible with an
 
 ## Overview ##
 - [Getting started](#getting-started)
-- [Bringing data to the lab](#bringing-data-to-the-lab)
 - [How it works](#how-it-works)
 - [Authors](#authors)
 
