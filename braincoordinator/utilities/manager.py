@@ -57,7 +57,7 @@ class Manager:
         max_image_width = self.sagittal_size[1] + self.coronal_size[1]
 
         if self.screen_width * .8 < max_image_width:
-            self.resize_factor = round(self.screen_width * .8/max_image_width * .935, 3)
+            self.scale_factor = round(self.screen_width * .8/max_image_width * .935, 3)
 
 
             #self.new_sagittal_size = (int(self.sagittal_size[1] * self.screen_scalar), int(self.sagittal_size[0] * self.screen_scalar))

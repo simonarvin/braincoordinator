@@ -22,6 +22,171 @@ from PIL import Image, ImageTk
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 
+class CommandPanel(tk.Frame):
+    def __init__(self, parent, root):
+        root.log = ""
+        tk.Frame.__init__(self, parent)
+        self.canvas = tk.Canvas(self, borderwidth=0)
+        window = self.canvas
+
+        Label(window,text="Command panel", height = 1).grid(row = 2, column = 0, columnspan =5)
+
+        Label(window ,text = "marker").grid(row = 3,column = 0, sticky=N+S+E+W)
+
+        Label(window ,text = "ap",width=3).grid(row = 4,column = 0, sticky=N+S+E+W)
+        Label(window ,text = "ml",width=3).grid(row = 5,column = 0, sticky=N+S+E+W)
+        Label(window ,text = "dv",width=3).grid(row = 6,column = 0, sticky=N+S+E+W)
+
+
+        root.tkt_log = tk.Text(window, height=8, width=40)
+        root.tkt_log.grid(row = 8, column = 0, columnspan=5, rowspan=3, sticky=N+S+E+W)
+        root.tkt_log.insert(END, "brain coordinator initiated\n")
+
+        def tkt_log_callback(*args):
+            root.tkt_log.see(END)
+
+        root.tkt_log.bind('<<Modified>>', tkt_log_callback)
+
+        scroll = tk.Scrollbar(window, orient="vertical", command=root.tkt_log.yview)
+        scroll.configure(orient="vertical", command=root.tkt_log.yview)
+        root.tkt_log.configure(yscrollcommand=scroll.set)
+        scroll.grid(row=8, rowspan=3, column=5,sticky="nsew")
+
+
+        def ignore_letters(e):
+            key = e.char
+            if key in ["a", "s", "z", "x", "d", "f"]:
+
+                #self.window.focus_set()
+                root.tkt_key(key, False)
+                return "break"
+
+
+
+        root.tkt_ap = Entry(window)
+        root.tkt_ap.grid(row = 4,column = 1, sticky=N+S+E+W,columnspan=3)
+        root.tkt_ap.bind('<Return>', root.coord_callback)
+        root.tkt_ap.bind('<Key>', ignore_letters)
+
+
+        root.tkt_ml = Entry(window)
+        root.tkt_ml.grid(row = 5,column = 1, sticky=N+S+E+W,columnspan=3)
+        root.tkt_ml.bind('<Return>', root.coord_callback)
+        root.tkt_ml.bind('<Key>', ignore_letters)
+
+        root.tkt_dv = Entry(window)
+        root.tkt_dv.grid(row = 6,column = 1, sticky=N+S+E+W,columnspan=3)
+        root.tkt_dv.bind('<Return>', root.coord_callback)
+        root.tkt_dv.bind('<Key>', ignore_letters)
+
+
+        def mark():
+
+            #print(self.tkt_ap.get(), self.tkt_ml.get(), self.tkt_dv.get())
+            try:
+                point = (float(eval(root.tkt_ap.get())), float(eval(root.tkt_ml.get())), float(eval(root.tkt_dv.get())))
+            except Exception as e:
+                print("invalid coordinates")
+                print(e)
+            nearest_coronal, nearest_sagittal = root.manager.find_nearest_slices(point[:2])
+
+
+            pixels_point = root.manager.to_pixel(point, 0) #self.manager.convert_to_pixels(point)
+
+
+
+            if root.tkt_selection == 0:
+                root.markers.append([pixels_point, nearest_coronal, point, 0])
+                label=f"M{len(root.markers)-1}"
+                root.drop_down['menu'].add_command(label=label, command=tk._setit(root.tkt_variable, label))
+                root.tkt_log.insert(END, f"{label} added\n")
+            else: #replace
+                root.markers[root.tkt_selection - 1] = [pixels_point, nearest_coronal, point, 0]
+                root.tkt_log.insert(END, f"M{root.tkt_selection - 1} saved\n")
+
+            coronal_image, sagittal_image = root.update()
+
+            root.update_coronal_tkt(coronal_image)
+            root.update_sagittal_tkt(sagittal_image)
+
+        root.save_txt = StringVar()
+        root.save_txt.set("add")
+        ttk.Button(window, textvariable=root.save_txt,command=mark, width=4).grid(row=7, column=0, columnspan=1)
+
+
+        OPTIONS = ["new"] + [f"M{i}" for i,_ in enumerate(root.markers)]
+        root.tkt_variable = variable = StringVar(window)
+        root.tkt_selection = 0
+
+        def go_new():
+            variable.set(OPTIONS[0])
+
+
+        gonew_btn = ttk.Button(window ,text="<<",command=go_new,width=3)
+        gonew_btn.grid(row=3, column=4, sticky=N+S+E+W)
+
+        ttk.Button(window, text="test",command=root.coord_callback,width=3).grid(row=7, column=1, sticky=N+S+E+W)
+        ttk.Button(window, text="clear",command=root.coord_callback,width=3).grid(row=7, column=2, sticky=N+S+E+W)
+
+
+        def callback(*args):
+            OPTIONS = ["new"] + [f"M{i}" for i,_ in enumerate(root.markers)]
+            root.tkt_selection = selection = OPTIONS.index(variable.get())
+            if selection == 0:# new marker
+                root.tkt_log.insert(END, "add new marker coordinates\n")
+                root.save_txt.set("add")
+                gonew_btn["state"] = DISABLED
+
+                #self.tkt_ap.delete(0,END)
+                #self.tkt_ml.delete(0,END)
+                #self.tkt_dv.delete(0,END)
+            else:
+
+                #root.tkt_msg.set(root.log)
+                root.tkt_log.insert(END, f"M{selection-1} loaded\n")
+                root.save_txt.set("save")
+
+                gonew_btn["state"] = "normal"
+                marker_coords = root.markers[selection - 1][2]
+                root.tkt_ap.delete(0,END)
+                root.tkt_ml.delete(0,END)
+                root.tkt_dv.delete(0,END)
+                root.tkt_ap.insert(0, marker_coords[0])
+                root.tkt_ml.insert(0, marker_coords[1])
+                root.tkt_dv.insert(0, marker_coords[2])
+
+                def remove_mark():
+                    # if pair, remove both. Open prompt first (are you sure)
+                    marker_index = root.tkt_selection - 1
+                    if len(root.markers)%2 == 0:
+                        #if self.tkt_selection == len(self.markers):
+                        root.paths.pop(marker_index//2 - 1)
+                        root.markers.pop(marker_index - 1)
+
+                    root.markers.pop(marker_index)
+
+                    root.drop_down['menu'].delete(root.tkt_selection )
+                    variable.set(OPTIONS[root.tkt_selection - 1])
+
+
+                    coronal_image, sagittal_image = self.update()
+
+                    self.update_coronal_tkt(coronal_image)
+                    self.update_sagittal_tkt(sagittal_image)
+
+                #ttk.Button(window ,text="remove",command=remove_mark).grid(row=6,column=1)
+
+        variable.trace("w", callback)
+        variable.set(OPTIONS[0]) # default value
+
+        root.drop_down = OptionMenu(window, variable, *list(OPTIONS))
+        #self.drop_down.configure(background = "yellow")
+        root.drop_down.grid(row = 3,column = 1, sticky=N+S+E+W,columnspan=2)
+
+        gonew_btn["state"] = DISABLED
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+
 class Example(tk.Frame):
     def __init__(self, parent, data):
 
@@ -48,6 +213,7 @@ class Example(tk.Frame):
 
         self.populate()
 
+
     def populate(self):
 
         for row, abbr in enumerate(self.data):
@@ -67,12 +233,15 @@ class Coordinator:
     Sagital slides skal spejles så der også er negative værdier
     når man taster ting ind i marker, skal der komme cursor op på canvas
     X---- se på paths, virker ikke helt (kan måske være to_pixels)
+    ^^^^^^^ MANGLER STADIG. NEGATIVE OG POSITIVE TAL FORBYTTES
+
     Gennemtænk marker-txt placering. Det kan gøres smartere, måske
         bedre 3d
         tykkelse af line
     Fix remove markers
     Add acronyms
     Fjern gamle GUI
+    Ryk command panel over i sin egen class (SKAL FIXES)
     """
 
     def __init__(self, args, ap:float = 0, ml:float = 0, dv:float =0) -> None:
@@ -80,6 +249,7 @@ class Coordinator:
         self.arguments = Arguments(args)
         self.cursor_color = (0,0,0)
         self.bg_color = "#262626"
+        self.zoom_size = 100
 
         if self.get(self.arguments.get):
             return
@@ -113,6 +283,7 @@ class Coordinator:
         self.third_color = [150,150,150]
 
         self.x, self.y = [0,0], [0,0]
+
         self.hover_window = 0
         self.setup_manual_prompt()
 
@@ -155,9 +326,51 @@ class Coordinator:
         example = Example(win, self.manager.abbreviations)
         example.pack(side="top", fill="both", expand=True)
 
-    def img_to_tk(self, img):
+    def img_to_tk(self, img, scale=True):
         #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        if scale:
+            img = cv2.resize(img, None, fx=self.manager.scale_factor, fy=self.manager.scale_factor,interpolation = self.manager.interpolation)
+
         return ImageTk.PhotoImage(Image.fromarray(img))
+
+    def coord_callback(self,*args):
+        ap = ml = dv = -99
+
+        try:
+            ap = float(eval(self.tkt_ap.get()))
+        except:
+            pass
+
+        try:
+            ml = float(eval(self.tkt_ml.get()))
+        except:
+            pass
+
+        try:
+            dv = float(eval(self.tkt_dv.get()))
+        except:
+            pass
+
+        point = (ap, ml, dv)
+        pixels_point_coronal = self.manager.to_pixel(point, 0)
+        pixels_point_sagittal = self.manager.to_pixel(point, 1)
+
+        coronal_image, sagittal_image = self.update()
+
+        if ap != -99:
+            sagittal_image[:, pixels_point_sagittal[0]] = self.third_color
+
+        if dv != -99:
+            sagittal_image[pixels_point_sagittal[1], :] = self.third_color
+            coronal_image[pixels_point_coronal[1], :] = self.third_color
+
+        if ml != -99:
+            coronal_image[:,pixels_point_coronal[0]] = self.third_color
+
+
+
+        self.update_sagittal_tkt(sagittal_image)
+        self.update_coronal_tkt(coronal_image)
 
     def setup_manual_prompt(self):
         self.window = window = Tk()
@@ -167,184 +380,34 @@ class Coordinator:
         #window.configure(background = "white")
         self.coronal_txt = StringVar()
         self.coronal_txt.set("move cursor to canvas")
-        Label(window,textvariable = self.coronal_txt, height = 1).grid(row = 0, column = 0, columnspan =5)
+
+        Label(window,textvariable = self.coronal_txt, height = 1).grid(row = 0, column = 0, columnspan =20)
 
         self.sagittal_txt = StringVar()
         self.sagittal_txt.set("move cursor to canvas")
-        Label(window,textvariable = self.sagittal_txt, height = 1).grid(row = 0, column = 5, columnspan =5)
+        Label(window,textvariable = self.sagittal_txt, height = 1).grid(row = 0, column = 20, columnspan =20)
 
-        Label(window ,text = "marker").grid(row = 2,column = 0)
+        self.zoom_txt = StringVar()
+        self.zoom_txt.set("zoom canvas")
+        Label(window,textvariable = self.zoom_txt, height = 1).grid(row = 2, column = 0, columnspan =5)
 
-        Label(window ,text = "ap").grid(row = 3,column = 0)
-        Label(window ,text = "ml").grid(row = 4,column = 0)
-        Label(window ,text = "dv").grid(row = 5,column = 0)
-        self.tkt_msg = StringVar()
+        command_panel = CommandPanel(window, self)
+        command_panel.grid(row=2, column=5, rowspan=20, columnspan=5,sticky=N+S+E+W)
 
-        Label(window ,textvariable = self.tkt_msg).grid(row = 7,column = 1)
-
-        def ignore_letters(e):
-            key = e.char
-            if key in ["a", "s", "z", "x", "d", "f"]:
-
-                #self.window.focus_set()
-                self.tkt_key(key, False)
-                return "break"
-
-
-        def coord_callback(*args):
-            ap = ml = dv = -99
-
-            try:
-                ap = float(eval(self.tkt_ap.get()))
-            except:
-                pass
-
-            try:
-                ml = float(eval(self.tkt_ml.get()))
-            except:
-                pass
-
-            try:
-                dv = float(eval(self.tkt_dv.get()))
-            except:
-                pass
-
-            point = (ap, ml, dv)
-            pixels_point_coronal = self.manager.to_pixel(point, 0)
-            pixels_point_sagittal = self.manager.to_pixel(point, 1)
-
-            coronal_image, sagittal_image = self.update()
-
-            if ap != -99:
-                sagittal_image[:, pixels_point_sagittal[0]] = self.third_color
-
-            if dv != -99:
-                sagittal_image[pixels_point_sagittal[1], :] = self.third_color
-                coronal_image[pixels_point_coronal[1], :] = self.third_color
-
-            if ml != -99:
-                coronal_image[:,pixels_point_coronal[0]] = self.third_color
-
-
-
-            self.update_sagittal_tkt(sagittal_image)
-            self.update_coronal_tkt(coronal_image)
-
-
-        self.tkt_ap = Entry(window)
-        self.tkt_ap.grid(row = 3,column = 1)
-        self.tkt_ap.bind('<Return>', coord_callback)
-        self.tkt_ap.bind('<Key>', ignore_letters)
-
-
-        self.tkt_ml = Entry(window)
-        self.tkt_ml.grid(row = 4,column = 1)
-        self.tkt_ml.bind('<Return>', coord_callback)
-        self.tkt_ml.bind('<Key>', ignore_letters)
-
-        self.tkt_dv = Entry(window)
-        self.tkt_dv.grid(row = 5,column = 1)
-        self.tkt_dv.bind('<Return>', coord_callback)
-        self.tkt_dv.bind('<Key>', ignore_letters)
-
-
-        def mark():
-
-            #print(self.tkt_ap.get(), self.tkt_ml.get(), self.tkt_dv.get())
-            if self.tkt_selection == 0:
-                print("NEW")
-            try:
-                point = (float(eval(self.tkt_ap.get())), float(eval(self.tkt_ml.get())), float(eval(self.tkt_dv.get())))
-            except Exception as e:
-                print("invalid coordinates")
-                print(e)
-            nearest_coronal, nearest_sagittal = self.manager.find_nearest_slices(point[:2])
-
-
-            pixels_point = self.manager.to_pixel(point, 0) #self.manager.convert_to_pixels(point)
-
-            self.markers.append([pixels_point, nearest_coronal, point, 0])
-            label=f"M{len(self.markers)-1}"
-            self.drop_down['menu'].add_command(label=label, command=tk._setit(self.tkt_variable, label))
-
-            coronal_image, sagittal_image = self.update()
-
-            self.update_coronal_tkt(coronal_image)
-            self.update_sagittal_tkt(sagittal_image)
-
-
-        ttk.Button(window ,text="save",command=mark).grid(row=6,column=0)
-
-        Label(window ,text = "Abbreviations").grid(row = 2,column = 7, columnspan=3)
+        Label(window ,text = "Abbreviations").grid(row = 2,column = 35, columnspan=5)
         example = Example(window, self.manager.abbreviations)
 
-        example.grid(row=3, column=7, rowspan=5, columnspan=3,sticky=N+S+E+W)
+        example.grid(row=3, column=35, rowspan=19, columnspan=5,sticky=N+S+E+W)
 
+        window.update()
+
+        self.zoom_size = int(example.winfo_height() * .5)
+
+        #Grid.columnconfigure(self.window, 4, weight=1)
 
 
     def manual_marker(self):
-        OPTIONS = ["new"] + [f"M{i}" for i,_ in enumerate(self.markers)]
-        self.tkt_variable = variable = StringVar(self.window)
-        self.tkt_selection = 0
 
-        def go_new():
-            variable.set(OPTIONS[0])
-
-
-        gonew_btn = ttk.Button(self.window ,text="<< transfer to new",command=go_new)
-        gonew_btn.grid(row=2, column=2)
-
-        def callback(*args):
-            OPTIONS = ["new"] + [f"M{i}" for i,_ in enumerate(self.markers)]
-            self.tkt_selection = selection = OPTIONS.index(variable.get())
-            if selection == 0:# new marker
-                self.tkt_msg.set("input new marker coords..")
-                gonew_btn["state"] = DISABLED
-
-                #self.tkt_ap.delete(0,END)
-                #self.tkt_ml.delete(0,END)
-                #self.tkt_dv.delete(0,END)
-            else:
-                self.tkt_msg.set(f"M{selection-1} loaded")
-                gonew_btn["state"] = "normal"
-                marker_coords = self.markers[selection - 1][2]
-                self.tkt_ap.delete(0,END)
-                self.tkt_ml.delete(0,END)
-                self.tkt_dv.delete(0,END)
-                self.tkt_ap.insert(0, marker_coords[0])
-                self.tkt_ml.insert(0, marker_coords[1])
-                self.tkt_dv.insert(0, marker_coords[2])
-
-                def remove_mark():
-                    # if pair, remove both. Open prompt first (are you sure)
-                    marker_index = self.tkt_selection - 1
-                    if len(self.markers)%2 == 0:
-                        #if self.tkt_selection == len(self.markers):
-                        self.paths.pop(marker_index//2 - 1)
-                        self.markers.pop(marker_index - 1)
-
-                    self.markers.pop(marker_index)
-
-                    self.drop_down['menu'].delete(self.tkt_selection )
-                    variable.set(OPTIONS[self.tkt_selection - 1])
-
-
-                    coronal_image, sagittal_image = self.update()
-
-                    self.update_coronal_tkt(coronal_image)
-                    self.update_sagittal_tkt(sagittal_image)
-
-                ttk.Button(self.window ,text="remove",command=remove_mark).grid(row=6,column=1)
-
-        variable.trace("w", callback)
-        variable.set(OPTIONS[0]) # default value
-
-        self.drop_down = OptionMenu(self.window, variable, *list(OPTIONS))
-        #self.drop_down.configure(background = "yellow")
-        self.drop_down.grid(row = 2,column = 1)
-
-
-        gonew_btn["state"] = DISABLED
 
         def close_():
             self.window.destroy()
@@ -368,21 +431,25 @@ class Coordinator:
 
         self.window.config(menu=menubar)
 
-        ttk.Button(self.window ,text="close",command=close_).grid(row=6, column=2)
+        #ttk.Button(self.window ,text="close",command=close_).grid(row=6, column=3, columnspan=2)
 
         coronal_image, sagittal_image = self.update()
         coronal_image=self.img_to_tk(coronal_image)
-        self.tkt_coronal = Label(self.window, image = coronal_image,bd=0)
+        self.tkt_coronal = Label(self.window, image = coronal_image,bd=0, cursor="cross")
         self.tkt_coronal.image = coronal_image
-        self.tkt_coronal.grid(row=1, column=0, columnspan=5)
+        self.tkt_coronal.grid(row=1, column=0, columnspan=20)
 
         self.tkt_coronal.bind('<Motion>', self.frontal_mouse_move)
         self.window.bind('<Key>',self.tkt_key)
 
+        self.tkt_zoom = Label(self.window, bd=0)
+        self.tkt_zoom.grid(row=2, column=0, columnspan=5, rowspan=20, sticky=S)
+
+
         sagittal_image=self.img_to_tk(sagittal_image)
-        self.tkt_sagittal = Label(self.window, image = sagittal_image,bd=1)
+        self.tkt_sagittal = Label(self.window, image = sagittal_image,bd=1, cursor="cross")
         self.tkt_sagittal.image = sagittal_image
-        self.tkt_sagittal.grid(row=1, column=5, columnspan = 5)
+        self.tkt_sagittal.grid(row=1, column=20, columnspan = 20)
         self.tkt_sagittal.bind('<Motion>', self.sagittal_mouse_move)
 
         self.window.mainloop()
@@ -419,7 +486,7 @@ class Coordinator:
 
 
     def frontal_mouse_move(self, e) -> None:
-        x,y = e.x,e.y
+        x,y = int(e.x/self.manager.scale_factor),int(e.y/self.manager.scale_factor)
 
         self.hover_window = 0
 
@@ -439,6 +506,7 @@ class Coordinator:
         coords = self.manager.convert_to_mm((x,y), 0)
         #cv2.putText(coronal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
         self.coronal_txt.set(f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}")
+        self.zoom_txt.set(f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}")
 
         self.x[0], self.y[0] = x, y
         self.update_coronal_tkt(coronal_image)
@@ -449,8 +517,11 @@ class Coordinator:
         self.tkt_coronal.configure(image=img)
         self.tkt_coronal.image = img
 
+        if self.hover_window == 0:
+            self.update_zoom(rawimg)
+
     def sagittal_mouse_move(self, e) -> None:
-        x, y = e.x, e.y
+        x,y = int(e.x/self.manager.scale_factor),int(e.y/self.manager.scale_factor)
 
         self.hover_window = 1
 
@@ -470,15 +541,41 @@ class Coordinator:
         coords = self.manager.convert_to_mm((x,y), 1)
         #cv2.putText(sagittal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
         self.sagittal_txt.set(f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}")
+        self.zoom_txt.set(f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}")
         #cv2.imshow("Sagittal", sagittal_image)
+        self.x[1], self.y[1] = x, y
+
         self.update_sagittal_tkt(sagittal_image)
 
-        self.x[1], self.y[1] = x, y
 
     def update_sagittal_tkt(self, rawimg):
         img = self.img_to_tk(rawimg)
         self.tkt_sagittal.configure(image=img)
         self.tkt_sagittal.image = img
+
+        if self.hover_window == 1:
+            self.update_zoom(rawimg)
+
+    def update_zoom(self, rawimg):
+        x, y = self.x[self.hover_window], self.y[self.hover_window]
+        zoom_size = self.zoom_size
+        size = rawimg.shape
+        y_1 = max(y - zoom_size, 0)
+        subtr_y2 = (y - zoom_size) - y_1
+        y_2 = min(y + zoom_size, size[0])
+        subtr_y1 = (y + zoom_size) - y_2
+
+        x_1 = max(x - zoom_size, 0)
+        subtr_x2 = (x - zoom_size) - x_1
+        x_2 = min(x + zoom_size, size[1])
+        subtr_x1 = (x + zoom_size) - x_2
+
+        cropimg = rawimg[y_1 - subtr_y1:y_2-subtr_y2, x_1 - subtr_x1:x_2-subtr_x2]
+
+        img = self.img_to_tk(cropimg, scale = False)
+        self.tkt_zoom.configure(image=img)
+        self.tkt_zoom.image = img
+
 
     def frontal_mouse(self, event, x:float, y:float, flags, param) -> None:
 
