@@ -314,4 +314,7 @@ class Manager:
                    description = " ".join(split[1:])
                    description = description.replace("\n", "")
                    self.abbreviations.append({"abbreviation" : abbreviation, "description" : description})
+
                line = fp.readline()
+
+        self.abbreviations=sorted(self.abbreviations, key=lambda k: k['abbreviation'].lower())

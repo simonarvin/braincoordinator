@@ -22,6 +22,8 @@ from PIL import Image, ImageTk
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 
+bold_font = 'Helvetica 14 bold'
+
 class CommandPanel(tk.Frame):
     def __init__(self, parent, root):
         root.log = ""
@@ -29,7 +31,7 @@ class CommandPanel(tk.Frame):
         self.canvas = tk.Canvas(self, borderwidth=0)
         window = self.canvas
 
-        Label(window,text="Command panel", height = 1).grid(row = 2, column = 0, columnspan =5)
+        Label(window,text="Command panel", height = 1, font=bold_font).grid(row = 2, column = 0, columnspan =5)
 
         Label(window ,text = "marker").grid(row = 3,column = 0, sticky=N+S+E+W)
 
@@ -60,8 +62,6 @@ class CommandPanel(tk.Frame):
                 #self.window.focus_set()
                 root.tkt_key(key, False)
                 return "break"
-
-
 
         root.tkt_ap = Entry(window)
         root.tkt_ap.grid(row = 4,column = 1, sticky=N+S+E+W,columnspan=3)
@@ -192,9 +192,28 @@ class Example(tk.Frame):
 
         tk.Frame.__init__(self, parent)
 
-        self.canvas = tk.Canvas(self, borderwidth=0, background="#ffffff")
+        scope_frame = tk.Frame(self)
+        scope_frame.pack(side="top", fill="x")
 
-        self.frame = tk.Frame(self.canvas, background="#ffffff")
+        ttk.Button(scope_frame, text="scope", command=self.set_scope).pack(side=RIGHT)
+
+        self.scope_entry = Entry(scope_frame)
+        self.scope_entry.pack(side=TOP, fill="x")
+        self.scope_entry.bind('<Return>', self.set_scope)
+
+
+        self.make_frame()
+
+        tk.Label(self.frame, text="search for abbreviations above", anchor="w").grid(row=0, column=1,columnspan=2, sticky=N+S+E+W)
+
+        self.data = data
+        self.scope = "all"
+
+        #self.populate()
+
+    def make_frame(self):
+        self.canvas = tk.Canvas(self, highlightthickness=1, highlightbackground="#a1a1a1")
+        self.frame = tk.Frame(self.canvas)
         self.hsb = tk.Scrollbar(self, orient="horizontal", command=self.canvas.xview)
 
         self.vsb = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
@@ -209,19 +228,40 @@ class Example(tk.Frame):
                                   tags="self.frame")
 
         self.frame.bind("<Configure>", self.onFrameConfigure)
-        self.data = data
 
+    def set_scope(self, *args):
+        self.scope = str(self.scope_entry.get())
+        self.frame.destroy()
+        self.canvas.destroy()
+        self.vsb.destroy()
+        self.hsb.destroy()
+
+        self.make_frame()
         self.populate()
 
-
     def populate(self):
+        scope = self.scope.lower()
+        i = 0
+        if scope == "all" or self.scope == "":
+            for row, abbr in enumerate(self.data):
+                if abbr["description"] == "":
+                    tk.Label(self.frame, text=abbr["abbreviation"], font=bold_font).grid(row=row, column=0,columnspan=2, sticky=N+S+E+W)
+                else:
+                    tk.Label(self.frame, text=abbr["abbreviation"], font=bold_font).grid(row=row, column=0,sticky=N+S+E+W)
 
-        for row, abbr in enumerate(self.data):
-            tk.Label(self.frame, text=abbr["abbreviation"], borderwidth="1",
-                     relief="solid").grid(row=row, column=0,sticky=N+S+E+W)
+                    tk.Label(self.frame, text=abbr["description"], anchor="w").grid(row=row, column=1,sticky=N+S+E+W)
 
-            tk.Label(self.frame, text=abbr["description"], anchor="w").grid(row=row, column=1,sticky=N+S+E+W)
+        else:
+            for row, abbr in enumerate(self.data):
 
+                if abbr["abbreviation"][:len(scope)].lower() == scope:
+
+                    tk.Label(self.frame, text=abbr["abbreviation"], font=bold_font).grid(row=row, column=0,sticky=N+S+E+W)
+
+                    tk.Label(self.frame, text=abbr["description"], anchor="w").grid(row=row, column=1,sticky=N+S+E+W)
+                    i+=1
+            if i == 0:
+                tk.Label(self.frame, text="no areas found, try again (e.g., 'CTX', 'all')", anchor="w").grid(row=0, column=1,columnspan=2, sticky=N+S+E+W)
 
     def onFrameConfigure(self, event):
         '''Reset the scroll region to encompass the inner frame'''
@@ -229,19 +269,20 @@ class Example(tk.Frame):
 
 class Coordinator:
     """
-    todo: musseplacering skal give et zoomed-billede nederst
+    Xtodo: musseplacering skal give et zoomed-billede nederst
     Sagital slides skal spejles så der også er negative værdier
-    når man taster ting ind i marker, skal der komme cursor op på canvas
+    Xnår man taster ting ind i marker, skal der komme cursor op på canvas
     X---- se på paths, virker ikke helt (kan måske være to_pixels)
-    ^^^^^^^ MANGLER STADIG. NEGATIVE OG POSITIVE TAL FORBYTTES
+    xxxx^^^^^^^ MANGLER STADIG. NEGATIVE OG POSITIVE TAL FORBYTTES
 
     Gennemtænk marker-txt placering. Det kan gøres smartere, måske
         bedre 3d
         tykkelse af line
     Fix remove markers
-    Add acronyms
+    XAdd acronyms
     Fjern gamle GUI
-    Ryk command panel over i sin egen class (SKAL FIXES)
+    XRyk command panel over i sin egen class (SKAL FIXES)
+    Fix billedeoperationer så de laves på mindste billeder
     """
 
     def __init__(self, args, ap:float = 0, ml:float = 0, dv:float =0) -> None:
@@ -285,12 +326,15 @@ class Coordinator:
         self.x, self.y = [0,0], [0,0]
 
         self.hover_window = 0
-        self.setup_manual_prompt()
+
 
         self.print_instructions()
 
         self.manager.set_values(ap, ml, dv)
-        self.iterate()
+        self.manager.coronal_index, self.manager.sagittal_index = self.manager.find_nearest_slices()
+        self.setup_manual_prompt()
+        self.manual_marker()
+        #self.iterate()
 
     def get(self, get:str):
 
@@ -328,10 +372,13 @@ class Coordinator:
 
     def img_to_tk(self, img, scale=True):
         #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(img)
         if scale:
-            img = cv2.resize(img, None, fx=self.manager.scale_factor, fy=self.manager.scale_factor,interpolation = self.manager.interpolation)
 
-        return ImageTk.PhotoImage(Image.fromarray(img))
+            img = img.resize( [int(self.manager.scale_factor * s) for s in img.size] )
+            #img = cv2.resize(img, None, fx=self.manager.scale_factor, fy=self.manager.scale_factor,interpolation = self.manager.interpolation)
+
+        return ImageTk.PhotoImage(img)
 
     def coord_callback(self,*args):
         ap = ml = dv = -99
@@ -394,10 +441,10 @@ class Coordinator:
         command_panel = CommandPanel(window, self)
         command_panel.grid(row=2, column=5, rowspan=20, columnspan=5,sticky=N+S+E+W)
 
-        Label(window ,text = "Abbreviations").grid(row = 2,column = 35, columnspan=5)
+        Label(window ,text = "Abbreviations", font=bold_font).grid(row = 2,column = 30, columnspan=10)
         example = Example(window, self.manager.abbreviations)
 
-        example.grid(row=3, column=35, rowspan=19, columnspan=5,sticky=N+S+E+W)
+        example.grid(row=3, column=30, rowspan=19, columnspan=10,sticky=N+S+E+W)
 
         window.update()
 
@@ -449,7 +496,7 @@ class Coordinator:
         sagittal_image=self.img_to_tk(sagittal_image)
         self.tkt_sagittal = Label(self.window, image = sagittal_image,bd=1, cursor="cross")
         self.tkt_sagittal.image = sagittal_image
-        self.tkt_sagittal.grid(row=1, column=20, columnspan = 20)
+        self.tkt_sagittal.grid(row = 1, column=20, columnspan = 20)
         self.tkt_sagittal.bind('<Motion>', self.sagittal_mouse_move)
 
         self.window.mainloop()
@@ -479,14 +526,14 @@ class Coordinator:
         else:
             return
 
-        coronal_image, sagittal_image = self.update()
-
-        self.update_coronal_tkt(coronal_image)
-        self.update_sagittal_tkt(sagittal_image)
+        #coronal_image, sagittal_image = self.update()
+        self.update_cursors()
+        #self.update_coronal_tkt(coronal_image)
+        #self.update_sagittal_tkt(sagittal_image)
 
 
     def frontal_mouse_move(self, e) -> None:
-        x,y = int(e.x/self.manager.scale_factor),int(e.y/self.manager.scale_factor)
+        x,y = round(e.x/self.manager.scale_factor),round(e.y/self.manager.scale_factor)
 
         self.hover_window = 0
 
@@ -495,20 +542,45 @@ class Coordinator:
                 self.manager.update_marker(self.selected_marker, (x, y), self.hover_window)
                 coronal_image, sagittal_image = self.update()
 
-
-        coronal_image= self.coronal_image.copy()
-        try:
-            coronal_image[:,x] = self.cursor_color
-            coronal_image[y,:] = self.cursor_color
-        except:
-            return
-
         coords = self.manager.convert_to_mm((x,y), 0)
         #cv2.putText(coronal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
         self.coronal_txt.set(f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}")
         self.zoom_txt.set(f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}")
 
         self.x[0], self.y[0] = x, y
+
+        self.update_cursors()
+
+    def update_cursors(self):
+        coronal_image, sagittal_image = self.update()
+        x0, x1 = self.x
+        y0, y1 = self.y
+        self.manager.coronal_index, self.manager.sagittal_index
+
+        if self.hover_window == 0:
+            try:
+
+                pixel = self.manager.to_pixel((str_to_float(self.manager.coronals[self.manager.coronal_index][0]), -1, -1), 1)
+                coronal_image[:,x0] = self.cursor_color
+                coronal_image[y0,:] = self.cursor_color
+                sagittal_image[y0,:] = self.cursor_color
+
+                sagittal_image[:, pixel[0]] = self.cursor_color
+            except:
+                pass
+        else:
+            try:
+                pixel = self.manager.to_pixel((-1, str_to_float(self.manager.sagittals[self.manager.sagittal_index]), -1), 0)
+                sagittal_image[:,x1] = self.cursor_color
+                sagittal_image[y1,:] = self.cursor_color
+                coronal_image[y1,:] = self.cursor_color
+                coronal_image[:, pixel[0]] = self.cursor_color
+            except Exception as e:
+                print(e)
+                pass
+
+
+        self.update_sagittal_tkt(sagittal_image)
         self.update_coronal_tkt(coronal_image)
 
 
@@ -521,7 +593,7 @@ class Coordinator:
             self.update_zoom(rawimg)
 
     def sagittal_mouse_move(self, e) -> None:
-        x,y = int(e.x/self.manager.scale_factor),int(e.y/self.manager.scale_factor)
+        x,y = round(e.x/self.manager.scale_factor),round(e.y/self.manager.scale_factor)
 
         self.hover_window = 1
 
@@ -531,12 +603,7 @@ class Coordinator:
                 coronal_image, sagittal_image = self.update()
                 #cv2.imshow("Coronal", coronal_image)
 
-        sagittal_image = self.sagittal_image.copy()
-        try:
-            sagittal_image[:,x] = self.cursor_color
-            sagittal_image[y,:] = self.cursor_color
-        except:
-            return
+
 
         coords = self.manager.convert_to_mm((x,y), 1)
         #cv2.putText(sagittal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
@@ -544,8 +611,7 @@ class Coordinator:
         self.zoom_txt.set(f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}")
         #cv2.imshow("Sagittal", sagittal_image)
         self.x[1], self.y[1] = x, y
-
-        self.update_sagittal_tkt(sagittal_image)
+        self.update_cursors()
 
 
     def update_sagittal_tkt(self, rawimg):
@@ -786,12 +852,14 @@ class Coordinator:
 
             cv2.addWeighted(sagittal_overlay, alpha, sagittal_image, 1 - alpha, 0, sagittal_image)
 
-            coord_float = -str_to_float(self.manager.coordinate[0])
+            coord_float = str_to_float(self.manager.coordinate[0])
 
+            new_marker = self.manager.to_pixel(marker[2], 0)
+            old_marker = self.manager.to_pixel(self.markers[i - 1][2], 0)
             if (i + 1) % 2 == 0:
 
                 if self.markers[i - 1][2][0] == marker[2][0] == coord_float:
-                    new_marker = self.manager.to_pixel(marker[2], 0)
+                    #new_marker = self.manager.to_pixel(marker[2], 0)
                     old_marker = self.manager.to_pixel(self.markers[i - 1][2], 0)
 
                     cv2.line(coronal_image, old_marker, new_marker, self.second_color, 1)
@@ -799,9 +867,8 @@ class Coordinator:
                 elif self.markers[i - 1][2][0] > coord_float > marker[2][0] or self.markers[i - 1][2][0] < coord_float < marker[2][0]:
 
                     fraction = (coord_float - self.markers[i - 1][2][0])/(marker[2][0] - self.markers[i - 1][2][0])
+                    #fraction = (coord_float - marker[2][0])/(-marker[2][0] + self.markers[i - 1][2][0])
 
-                    new_marker = self.manager.to_pixel(marker[2], 0)
-                    old_marker = self.manager.to_pixel(self.markers[i - 1][2], 0)
                     ml_diff = (new_marker[0] - old_marker[0]) * fraction
                     dv_diff = (new_marker[1] - old_marker[1]) * fraction
 
@@ -809,10 +876,10 @@ class Coordinator:
 
                     start = np.array([old_marker[0] + ml_diff, old_marker[1] + dv_diff], dtype = int)
 
-                    cv2.circle(coronal_image, tuple(start), 4, self.primary_color, 1)
+                    cv2.circle(coronal_image, tuple(start), 4, self.primary_color, 3)
 
             size = max(.7 - abs(coord_float - marker[2][0]) * .2, .3)
-            new_marker = self.manager.to_pixel(marker[2], 0)
+            #new_marker = self.manager.to_pixel(marker[2], 0)
 
             coronal_overlay = coronal_image.copy()
             self.place_cross(coronal_overlay, new_marker, self.primary_color)
