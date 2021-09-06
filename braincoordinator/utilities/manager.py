@@ -27,6 +27,8 @@ class Manager:
         self.get_native_sizes()
         self.get_tkt_scalar()
 
+
+
         self.preload = int(preload)
         if self.preload == 1:
             self.load_images()
@@ -59,7 +61,6 @@ class Manager:
         if self.screen_width * .8 < max_image_width:
             self.scale_factor = round(self.screen_width * .8/max_image_width * .935, 3)
 
-
             #self.new_sagittal_size = (int(self.sagittal_size[1] * self.screen_scalar), int(self.sagittal_size[0] * self.screen_scalar))
             #self.new_coronal_size = (int(self.coronal_size[1] * self.screen_scalar), int(self.coronal_size[0] * self.screen_scalar))
 
@@ -68,14 +69,29 @@ class Manager:
 
         if type ==0:
             #sagittal mm -> frontal pixels
-            return int(marker[1] * self.coronal_ml[1] + self.coronal_ml[0]), int((marker[2]) * self.coronal_dv[1] + self.coronal_dv[0])
-        else:
-            return int(-marker[0] * self.sagittal_ap[1] + self.sagittal_ap[0]), int((marker[2]) * self.sagittal_dv[1] + self.sagittal_dv[0])
+            output=int(marker[1] * self.coronal_ml[1] + self.coronal_ml[0]), int((marker[2]) * self.coronal_dv[1] + self.coronal_dv[0])
 
+        else:
+            output= int(-marker[0] * self.sagittal_ap[1] + self.sagittal_ap[0]), int((marker[2]) * self.sagittal_dv[1] + self.sagittal_dv[0])
+
+        return output#[round(o/self.scale_factor) for o in output]
+
+
+    def to_pixel_r(self, marker, type):
+
+        if type ==0:
+            #sagittal mm -> frontal pixels
+            output=int(marker[1] * self.coronal_ml[1] + self.coronal_ml[0]), int((marker[2]) * self.coronal_dv[1] + self.coronal_dv[0])
+
+        else:
+            output= int(-marker[0] * self.sagittal_ap[1] + self.sagittal_ap[0]), int((marker[2]) * self.sagittal_dv[1] + self.sagittal_dv[0])
+
+        return [round(o/self.scale_factor) for o in output]
 
     def update_marker(self, marker, point, hover_window):
         marker[0] = point
         marker[2] = self.convert_to_mm(point, hover_window)
+
 
     def set_values(self, ap:float, ml:float, dv:float) -> None:
 
@@ -130,7 +146,7 @@ class Manager:
                 size = coronal_image.shape
                 coronal_image = cv2.resize(coronal_image, None, fx=self.resize_factor, fy=self.resize_factor, interpolation = self.interpolation)
 
-            sagittal_image = cv2.imread(self.animal_path+"/l{}.jpg".format(ml))
+            sagittal_image = cv2.imread(self.animal_path+"/l{}.jpg".format(ml), cv2.IMREAD_UNCHANGED)
             if self.resize_factor != 1:
                 size = sagittal_image.shape
 
@@ -139,6 +155,9 @@ class Manager:
         return cv2.cvtColor(coronal_image, cv2.COLOR_BGR2RGB), cv2.cvtColor(sagittal_image, cv2.COLOR_BGR2RGB)
 
     def convert_to_mm(self, marker, type:int) -> np.ndarray:
+
+        #marker = [round(m/self.scale_factor) for m in marker]
+
 
         if type == 0: #ap
             raw_array = [str_to_float(self.coronals[self.coronal_index][0]), (marker[0] - self.coronal_ml[0])/self.coronal_ml[1], (marker[1] - self.coronal_dv[0])/self.coronal_dv[1]]
@@ -242,7 +261,7 @@ class Manager:
            line = fp.readline()
            while line:
                split = line.split(",")
-               split = np.array(split, dtype = int) * self.resize_factor
+               split = np.array(split, dtype = int) * self.scale_factor#resize_factor
                self.coronal_mls.append(split)
                line = fp.readline()
 
@@ -253,7 +272,7 @@ class Manager:
            line = fp.readline()
            while line:
                split = line.split(",")
-               split = np.array(split, dtype = int) * self.resize_factor
+               split = np.array(split, dtype = int) * self.scale_factor#esize_factor
                self.coronal_dvs.append(split)
                line = fp.readline()
 
@@ -266,7 +285,7 @@ class Manager:
            line = fp.readline()
            while line:
                split = line.split(",")
-               split = np.array(split, dtype = int) * self.resize_factor
+               split = np.array(split, dtype = int) * self.scale_factor
                self.sagittal_aps.append(split)
                line = fp.readline()
 
@@ -281,7 +300,7 @@ class Manager:
            line = fp.readline()
            while line:
                split = line.split(",")
-               split = np.array(split, dtype = int) * self.resize_factor
+               split = np.array(split, dtype = int) * self.scale_factor
                self.sagittal_dvs.append(split)
                line = fp.readline()
 

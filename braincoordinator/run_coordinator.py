@@ -104,10 +104,10 @@ class CommandPanel(tk.Frame):
                 root.markers[root.tkt_selection - 1] = [pixels_point, nearest_coronal, point, 0]
                 root.tkt_log.insert(END, f"M{root.tkt_selection - 1} saved\n")
 
-            coronal_image, sagittal_image = root.update()
+            c, s = root.update()
 
-            root.update_coronal_tkt(coronal_image)
-            root.update_sagittal_tkt(sagittal_image)
+            root.update_coronal_tkt(c)
+            root.update_sagittal_tkt(s)
 
         root.save_txt = StringVar()
         root.save_txt.set("add")
@@ -169,10 +169,10 @@ class CommandPanel(tk.Frame):
                     variable.set(OPTIONS[root.tkt_selection - 1])
 
 
-                    coronal_image, sagittal_image = self.update()
+                    c, s = self.update()
 
-                    self.update_coronal_tkt(coronal_image)
-                    self.update_sagittal_tkt(sagittal_image)
+                    self.update_coronal_tkt(c)
+                    self.update_sagittal_tkt(s)
 
                 #ttk.Button(window ,text="remove",command=remove_mark).grid(row=6,column=1)
 
@@ -334,7 +334,7 @@ class Coordinator:
         self.manager.coronal_index, self.manager.sagittal_index = self.manager.find_nearest_slices()
         self.setup_manual_prompt()
         self.manual_marker()
-        #self.iterate()
+
 
     def get(self, get:str):
 
@@ -370,15 +370,10 @@ class Coordinator:
         example = Example(win, self.manager.abbreviations)
         example.pack(side="top", fill="both", expand=True)
 
-    def img_to_tk(self, img, scale=True):
+    def img_to_tk(self, img):
         #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img = Image.fromarray(img)
-        if scale:
 
-            img = img.resize( [int(self.manager.scale_factor * s) for s in img.size] )
-            #img = cv2.resize(img, None, fx=self.manager.scale_factor, fy=self.manager.scale_factor,interpolation = self.manager.interpolation)
-
-        return ImageTk.PhotoImage(img)
+        return ImageTk.PhotoImage(Image.fromarray(img))
 
     def coord_callback(self,*args):
         ap = ml = dv = -99
@@ -402,7 +397,7 @@ class Coordinator:
         pixels_point_coronal = self.manager.to_pixel(point, 0)
         pixels_point_sagittal = self.manager.to_pixel(point, 1)
 
-        coronal_image, sagittal_image = self.update()
+        coronal_image, sagittal_image = self.coronal_image.copy(), self.sagittal_image.copy()
 
         if ap != -99:
             sagittal_image[:, pixels_point_sagittal[0]] = self.third_color
@@ -415,9 +410,8 @@ class Coordinator:
             coronal_image[:,pixels_point_coronal[0]] = self.third_color
 
 
-
-        self.update_sagittal_tkt(sagittal_image)
         self.update_coronal_tkt(coronal_image)
+        self.update_sagittal_tkt(sagittal_image)
 
     def setup_manual_prompt(self):
         self.window = window = Tk()
@@ -503,8 +497,9 @@ class Coordinator:
         self.setup_manual_prompt()
 
     def tkt_key(self, e, type = True):
+
         if type:
-            key =e.char
+            key = e.char
         else:
             key = e
 
@@ -526,14 +521,13 @@ class Coordinator:
         else:
             return
 
-        #coronal_image, sagittal_image = self.update()
+        self.update()
         self.update_cursors()
-        #self.update_coronal_tkt(coronal_image)
-        #self.update_sagittal_tkt(sagittal_image)
+
 
 
     def frontal_mouse_move(self, e) -> None:
-        x,y = round(e.x/self.manager.scale_factor),round(e.y/self.manager.scale_factor)
+        x,y = e.x, e.y
 
         self.hover_window = 0
 
@@ -541,6 +535,7 @@ class Coordinator:
             if self.selected_marker[3] == self.hover_window:
                 self.manager.update_marker(self.selected_marker, (x, y), self.hover_window)
                 coronal_image, sagittal_image = self.update()
+
 
         coords = self.manager.convert_to_mm((x,y), 0)
         #cv2.putText(coronal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
@@ -552,10 +547,10 @@ class Coordinator:
         self.update_cursors()
 
     def update_cursors(self):
-        coronal_image, sagittal_image = self.update()
+
+        coronal_image, sagittal_image = self.coronal_image.copy(), self.sagittal_image.copy()
         x0, x1 = self.x
         y0, y1 = self.y
-        self.manager.coronal_index, self.manager.sagittal_index
 
         if self.hover_window == 0:
             try:
@@ -584,16 +579,16 @@ class Coordinator:
         self.update_coronal_tkt(coronal_image)
 
 
-    def update_coronal_tkt(self, rawimg):
-        img = self.img_to_tk(rawimg)
+    def update_coronal_tkt(self, img):
+        img = self.img_to_tk(img)
         self.tkt_coronal.configure(image=img)
         self.tkt_coronal.image = img
 
         if self.hover_window == 0:
-            self.update_zoom(rawimg)
+            self.update_zoom(self.full_coronal_image)
 
     def sagittal_mouse_move(self, e) -> None:
-        x,y = round(e.x/self.manager.scale_factor),round(e.y/self.manager.scale_factor)
+        x,y = e.x, e.y
 
         self.hover_window = 1
 
@@ -602,8 +597,6 @@ class Coordinator:
                 self.manager.update_marker(self.selected_marker, (x, y), self.hover_window)
                 coronal_image, sagittal_image = self.update()
                 #cv2.imshow("Coronal", coronal_image)
-
-
 
         coords = self.manager.convert_to_mm((x,y), 1)
         #cv2.putText(sagittal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
@@ -614,16 +607,16 @@ class Coordinator:
         self.update_cursors()
 
 
-    def update_sagittal_tkt(self, rawimg):
-        img = self.img_to_tk(rawimg)
+    def update_sagittal_tkt(self, img):
+        img = self.img_to_tk(img)
         self.tkt_sagittal.configure(image=img)
         self.tkt_sagittal.image = img
 
         if self.hover_window == 1:
-            self.update_zoom(rawimg)
+            self.update_zoom(self.full_sagittal_image)
 
     def update_zoom(self, rawimg):
-        x, y = self.x[self.hover_window], self.y[self.hover_window]
+        x, y = round(self.x[self.hover_window]/self.manager.scale_factor), round(self.y[self.hover_window]/self.manager.scale_factor)
         zoom_size = self.zoom_size
         size = rawimg.shape
         y_1 = max(y - zoom_size, 0)
@@ -636,78 +629,10 @@ class Coordinator:
         x_2 = min(x + zoom_size, size[1])
         subtr_x1 = (x + zoom_size) - x_2
 
-        cropimg = rawimg[y_1 - subtr_y1:y_2-subtr_y2, x_1 - subtr_x1:x_2-subtr_x2]
-
-        img = self.img_to_tk(cropimg, scale = False)
+        img = self.img_to_tk(rawimg[y_1 - subtr_y1:y_2-subtr_y2, x_1 - subtr_x1:x_2-subtr_x2])
         self.tkt_zoom.configure(image=img)
         self.tkt_zoom.image = img
 
-
-    def frontal_mouse(self, event, x:float, y:float, flags, param) -> None:
-
-        if event == cv2.EVENT_MOUSEMOVE:
-            self.hover_window = 0
-
-            if self.selected_marker != None:
-                if self.selected_marker[3] == self.hover_window:
-                    self.manager.update_marker(self.selected_marker, (x, y), self.hover_window)
-                    coronal_image, sagittal_image = self.update()
-                    cv2.imshow("Sagittal", sagittal_image)
-
-            coronal_image= self.coronal_image.copy()
-            coronal_image[:,x] = self.cursor_color
-            coronal_image[y,:] = self.cursor_color
-
-            coords = self.manager.convert_to_mm((x,y), 0)
-            cv2.putText(coronal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
-
-            cv2.imshow("Coronal", coronal_image)
-
-
-        if event == cv2.EVENT_LBUTTONDOWN:
-            if self.selected_marker == None:
-                distance, marker = self.find_nearest_marker((x, y))
-                if distance < 20:
-                    self.selected_marker = marker
-
-        elif event == cv2.EVENT_LBUTTONUP:
-
-            self.selected_marker = None
-
-        self.x[0], self.y[0] = x, y
-
-    def sagittal_mouse(self, event, x:float, y:float, flags, param) -> None:
-
-        if event == cv2.EVENT_MOUSEMOVE:
-            self.hover_window = 1
-
-            if self.selected_marker != None:
-                if self.selected_marker[3] == self.hover_window:
-                    self.manager.update_marker(self.selected_marker, (x, y), self.hover_window)
-                    coronal_image, sagittal_image = self.update()
-                    #cv2.imshow("Coronal", coronal_image)
-
-            sagittal_image = self.sagittal_image.copy()
-            sagittal_image[:,x] = self.cursor_color
-            sagittal_image[y,:] = self.cursor_color
-
-            coords = self.manager.convert_to_mm((x,y), 1)
-            cv2.putText(sagittal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
-
-            cv2.imshow("Sagittal", sagittal_image)
-
-
-        if event == cv2.EVENT_LBUTTONDOWN:
-            if self.selected_marker == None:
-                distance, marker = self.find_nearest_marker((x, y))
-                if distance < 20:
-                    self.selected_marker = marker
-
-        elif event == cv2.EVENT_LBUTTONUP:
-
-            self.selected_marker = None
-
-        self.x[1], self.y[1] = x, y
 
     def place_cross(self, source: np.ndarray, point: tuple, color: tuple) -> None:
 
@@ -786,11 +711,6 @@ class Coordinator:
 
         coronal_image, sagittal_image = self.manager.get_images()
 
-        #self.scale = self.get_scale(img)  #tuple center, pixels per mm
-        #self.scale[0] = self.scale[0] - self.scale[1] * 2
-        #img[self.scale[0],30] = self.primary_color
-        #print(self.scale)
-
         self.manager.set_scale()
 
         #self.clear()
@@ -820,16 +740,16 @@ class Coordinator:
             if (i + 1) % 2 == 0:
 
                 if self.markers[i - 1][2][1] == marker[2][1] == coord_float:
-                    new_marker = self.manager.to_pixel(marker[2], 1)
-                    old_marker = self.manager.to_pixel(self.markers[i - 1][2], 1)
+                    new_marker = self.manager.to_pixel_r(marker[2], 1)
+                    old_marker = self.manager.to_pixel_r(self.markers[i - 1][2], 1)
 
                     cv2.line(sagittal_image, old_marker, new_marker, self.second_color, 1)
 
                 elif self.markers[i - 1][2][1] > coord_float > marker[2][1] or self.markers[i - 1][2][1] < coord_float < marker[2][1]:
                     fraction = (coord_float - self.markers[i - 1][2][1])/(marker[2][1] - self.markers[i - 1][2][1])
 
-                    new_marker = self.manager.to_pixel(marker[2], 1)
-                    old_marker = self.manager.to_pixel(self.markers[i - 1][2], 1)
+                    new_marker = self.manager.to_pixel_r(marker[2], 1)
+                    old_marker = self.manager.to_pixel_r(self.markers[i - 1][2], 1)
 
                     ml_diff = (new_marker[0] - old_marker[0]) * fraction
                     dv_diff = (new_marker[1] - old_marker[1]) * fraction
@@ -837,12 +757,12 @@ class Coordinator:
                     cv2.line(sagittal_image, old_marker, new_marker, self.second_color, 1)
 
 
-                    start = np.array([old_marker[0] + ml_diff, old_marker[1] + dv_diff], dtype = int)
+                    start = np.round(np.array([old_marker[0] + ml_diff, old_marker[1] + dv_diff])).astype(int)
 
                     cv2.circle(sagittal_image, tuple(start), 4, self.primary_color, 1)
 
             size = max(.7 - abs(coord_float - marker[2][1]) * .2, .2)
-            new_marker = self.manager.to_pixel(marker[2], 1)
+            new_marker = self.manager.to_pixel_r(marker[2], 1)
             sagittal_overlay = sagittal_image.copy()
 
             self.place_cross(sagittal_overlay, new_marker, self.primary_color)
@@ -854,13 +774,13 @@ class Coordinator:
 
             coord_float = str_to_float(self.manager.coordinate[0])
 
-            new_marker = self.manager.to_pixel(marker[2], 0)
-            old_marker = self.manager.to_pixel(self.markers[i - 1][2], 0)
+            new_marker = self.manager.to_pixel_r(marker[2], 0)
+            old_marker = self.manager.to_pixel_r(self.markers[i - 1][2], 0)
             if (i + 1) % 2 == 0:
 
                 if self.markers[i - 1][2][0] == marker[2][0] == coord_float:
                     #new_marker = self.manager.to_pixel(marker[2], 0)
-                    old_marker = self.manager.to_pixel(self.markers[i - 1][2], 0)
+                    old_marker = self.manager.to_pixel_r(self.markers[i - 1][2], 0)
 
                     cv2.line(coronal_image, old_marker, new_marker, self.second_color, 1)
 
@@ -874,7 +794,7 @@ class Coordinator:
 
                     cv2.line(coronal_image, old_marker, new_marker, self.second_color, 1)
 
-                    start = np.array([old_marker[0] + ml_diff, old_marker[1] + dv_diff], dtype = int)
+                    start = np.round(np.array([old_marker[0] + ml_diff, old_marker[1] + dv_diff])).astype(int)
 
                     cv2.circle(coronal_image, tuple(start), 4, self.primary_color, 3)
 
@@ -889,8 +809,17 @@ class Coordinator:
 
             cv2.addWeighted(coronal_overlay, alpha, coronal_image, 1 - alpha, 0, coronal_image)
 
-        self.coronal_image, self.sagittal_image = coronal_image, sagittal_image
-        return coronal_image, sagittal_image
+
+        self.full_coronal_image, self.full_sagittal_image = coronal_image, sagittal_image
+            #img = cv2.resize(img, None, fx=self.manager.scale_factor, fy=self.manager.scale_factor,interpolation = self.manager.interpolation)
+        if self.manager.scale_factor != 1:
+
+            self.coronal_image = cv2.resize(coronal_image, None, fx=self.manager.scale_factor, fy=self.manager.scale_factor,interpolation = self.manager.interpolation)
+            self.sagittal_image = cv2.resize(sagittal_image, None, fx=self.manager.scale_factor, fy=self.manager.scale_factor,interpolation = self.manager.interpolation)
+        else:
+            self.coronal_image, self.sagittal_image = coronal_image, sagittal_image
+
+        return self.coronal_image, self.sagittal_image
 
 
     def clear(self):
@@ -909,73 +838,12 @@ class Coordinator:
             self.markers.append([point, self.manager.coronal_index, self.manager.convert_to_mm(point, 0), self.hover_window])
         else:
             self.markers.append([point, self.manager.sagittal_index, self.manager.convert_to_mm(point, 1), self.hover_window])
+
         label= f"M{len(self.markers)-1}"
         self.drop_down['menu'].add_command(label=label, command=tk._setit(self.tkt_variable, label))
 
 
 
-    def keyHandler(self, key):
-        if key == ord("x"):
-            self.manager.next("sagittal")
-
-        elif key == ord("z"):
-            self.manager.previous("sagittal")
-
-        elif key == ord("a"):
-            self.manager.next("coronal")
-
-        elif key == ord("s"):
-            self.manager.previous("coronal")
-
-        elif key == ord("p"):
-            self.manual_marker()
-
-        elif key==ord("d"):
-            try:
-                point = (self.x[self.hover_window], self.y[self.hover_window])
-                self.place_marker(point)
-
-            except AttributeError:
-                print("Click image once to gain focus.")
-
-
-        elif key == ord("f"):
-            try:
-                if len(self.markers)%2 == 0:
-                    self.paths.pop()
-
-                self.markers.pop()
-            except:
-                pass
-        # elif key == ord("p"):
-        #     self.save_data()
-        elif key == ord("q"):
-            return True
-
-        return False
-
-    def iterate(self):
-
-        self.manager.coronal_index, self.manager.sagittal_index = self.manager.find_nearest_slices()
-
-        coronal_image, sagittal_image = self.update()
-
-        cv2.imshow("Coronal", coronal_image)
-        cv2.imshow("Sagittal", sagittal_image)
-        cv2.setMouseCallback("Coronal", self.frontal_mouse)
-        cv2.setMouseCallback("Sagittal", self.sagittal_mouse)
-
-        while True:
-
-            coronal_image, sagittal_image = self.update()
-
-            cv2.imshow("Coronal", coronal_image)
-            cv2.imshow("Sagittal", sagittal_image)
-
-            key = cv2.waitKey(0)
-
-            if self.keyHandler(key):
-                break
 
 def main():
     print("Brain coordinator initiated")
