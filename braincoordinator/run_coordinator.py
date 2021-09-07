@@ -23,6 +23,7 @@ from PIL import Image, ImageTk
 font = cv2.FONT_HERSHEY_SIMPLEX
 
 bold_font = 'Helvetica 14 bold'
+letters = ["a", "s", "z", "x", "d", "f"]
 
 class CommandPanel(tk.Frame):
     def __init__(self, parent, root):
@@ -31,17 +32,16 @@ class CommandPanel(tk.Frame):
         self.canvas = tk.Canvas(self, borderwidth=0)
         window = self.canvas
 
-        Label(window,text="Command panel", height = 1, font=bold_font).grid(row = 2, column = 0, columnspan =5)
 
-        Label(window ,text = "marker").grid(row = 3,column = 0, sticky=N+S+E+W)
+        Label(window ,text = "marker ", font=bold_font).grid(row = 0,column = 0, sticky=E)
 
-        Label(window ,text = "ap",width=3).grid(row = 4,column = 0, sticky=N+S+E+W)
-        Label(window ,text = "ml",width=3).grid(row = 5,column = 0, sticky=N+S+E+W)
-        Label(window ,text = "dv",width=3).grid(row = 6,column = 0, sticky=N+S+E+W)
+        Label(window ,text = "ap ",width=3, font=bold_font).grid(row = 1,column = 0, sticky=E)
+        Label(window ,text = "ml ",width=3, font = bold_font).grid(row = 2,column = 0, sticky=E)
+        Label(window ,text = "dv ",width=3, font=bold_font).grid(row = 3,column = 0, sticky=E)
 
 
-        root.tkt_log = tk.Text(window, height=8, width=40)
-        root.tkt_log.grid(row = 8, column = 0, columnspan=5, rowspan=3, sticky=N+S+E+W)
+        root.tkt_log = tk.Text(window, width=60)
+        root.tkt_log.grid(row = 5, column = 0, columnspan=5, rowspan=4, sticky=W)
         root.tkt_log.insert(END, "brain coordinator initiated\n")
 
         def tkt_log_callback(*args):
@@ -52,32 +52,33 @@ class CommandPanel(tk.Frame):
         scroll = tk.Scrollbar(window, orient="vertical", command=root.tkt_log.yview)
         scroll.configure(orient="vertical", command=root.tkt_log.yview)
         root.tkt_log.configure(yscrollcommand=scroll.set)
-        scroll.grid(row=8, rowspan=3, column=5,sticky="nsew")
+        scroll.grid(row=5, rowspan=4, column=5,sticky="nsew")
 
 
         def ignore_letters(e):
             key = e.char
-            if key in ["a", "s", "z", "x", "d", "f"]:
+            if key in letters:
 
                 #self.window.focus_set()
                 root.tkt_key(key, False)
                 return "break"
 
         root.tkt_ap = Entry(window)
-        root.tkt_ap.grid(row = 4,column = 1, sticky=N+S+E+W,columnspan=3)
+        root.tkt_ap.grid(row = 1,column = 1, sticky=N+S+E+W,columnspan=3)
         root.tkt_ap.bind('<Return>', root.coord_callback)
         root.tkt_ap.bind('<Key>', ignore_letters)
-
+        #root.tkt_ap.bind('<Control-a>', lambda x:print("JJJJ"))
 
         root.tkt_ml = Entry(window)
-        root.tkt_ml.grid(row = 5,column = 1, sticky=N+S+E+W,columnspan=3)
+        root.tkt_ml.grid(row = 2,column = 1, sticky=N+S+E+W,columnspan=3)
         root.tkt_ml.bind('<Return>', root.coord_callback)
         root.tkt_ml.bind('<Key>', ignore_letters)
 
         root.tkt_dv = Entry(window)
-        root.tkt_dv.grid(row = 6,column = 1, sticky=N+S+E+W,columnspan=3)
+        root.tkt_dv.grid(row = 3,column = 1, sticky=N+S+E+W,columnspan=3)
         root.tkt_dv.bind('<Return>', root.coord_callback)
         root.tkt_dv.bind('<Key>', ignore_letters)
+
 
 
         def mark():
@@ -88,6 +89,7 @@ class CommandPanel(tk.Frame):
             except Exception as e:
                 print("invalid coordinates")
                 print(e)
+                return
             nearest_coronal, nearest_sagittal = root.manager.find_nearest_slices(point[:2])
 
 
@@ -111,7 +113,7 @@ class CommandPanel(tk.Frame):
 
         root.save_txt = StringVar()
         root.save_txt.set("add")
-        ttk.Button(window, textvariable=root.save_txt,command=mark, width=4).grid(row=7, column=0, columnspan=1)
+        ttk.Button(window, textvariable=root.save_txt,command=mark, width=4).grid(row=4, column=0, columnspan=1)
 
 
         OPTIONS = ["new"] + [f"M{i}" for i,_ in enumerate(root.markers)]
@@ -123,10 +125,10 @@ class CommandPanel(tk.Frame):
 
 
         gonew_btn = ttk.Button(window ,text="<<",command=go_new,width=3)
-        gonew_btn.grid(row=3, column=4, sticky=N+S+E+W)
+        gonew_btn.grid(row=0, column=4, sticky=N+S+E+W)
 
-        ttk.Button(window, text="test",command=root.coord_callback,width=3).grid(row=7, column=1, sticky=N+S+E+W)
-        ttk.Button(window, text="clear",command=root.coord_callback,width=3).grid(row=7, column=2, sticky=N+S+E+W)
+        ttk.Button(window, text="test",command=root.coord_callback,width=3).grid(row=4, column=1, sticky=N+S+E+W)
+        ttk.Button(window, text="clear",command=root.coord_callback,width=3).grid(row=4, column=2, sticky=N+S+E+W)
 
 
         def callback(*args):
@@ -181,7 +183,7 @@ class CommandPanel(tk.Frame):
 
         root.drop_down = OptionMenu(window, variable, *list(OPTIONS))
         #self.drop_down.configure(background = "yellow")
-        root.drop_down.grid(row = 3,column = 1, sticky=N+S+E+W,columnspan=2)
+        root.drop_down.grid(row = 0,column = 1, sticky=N+S+E+W, columnspan=3)
 
         gonew_btn["state"] = DISABLED
 
@@ -282,7 +284,9 @@ class Coordinator:
     XAdd acronyms
     Fjern gamle GUI
     XRyk command panel over i sin egen class (SKAL FIXES)
-    Fix billedeoperationer så de laves på mindste billeder
+    XFix billedeoperationer så de laves på mindste billeder
+    Gør så man kan bevæge cursor på zoom-image
+    Gør så man kan gemme og loade markers (evt lav numpy save/load)
     """
 
     def __init__(self, args, ap:float = 0, ml:float = 0, dv:float =0) -> None:
@@ -351,6 +355,7 @@ class Coordinator:
             https://github.com/simonarvin/braincoordinator
 
         INSTRUCTIONS:
+        Hold Control and press...:
         A/S - previous/next coronal slice.
         Z/X - previous/next sagittal slice.
         D   - place marker.
@@ -399,19 +404,34 @@ class Coordinator:
 
         coronal_image, sagittal_image = self.coronal_image.copy(), self.sagittal_image.copy()
 
+        nearest_coronal, nearest_sagittal = self.manager.find_nearest_slices((ap, ml))
+        upd=False
         if ap != -99:
-            sagittal_image[:, pixels_point_sagittal[0]] = self.third_color
+            #sagittal_image[:, pixels_point_sagittal[0]] = self.third_color
+            self.manager.coronal_index = nearest_coronal
+            self.x[1] = pixels_point_sagittal[0]
+            upd=True
+
 
         if dv != -99:
-            sagittal_image[pixels_point_sagittal[1], :] = self.third_color
-            coronal_image[pixels_point_coronal[1], :] = self.third_color
+            #sagittal_image[pixels_point_sagittal[1], :] = self.third_color
+            #coronal_image[pixels_point_coronal[1], :] = self.third_color
+            self.y = [pixels_point_coronal[1], pixels_point_sagittal[1]]
 
         if ml != -99:
-            coronal_image[:,pixels_point_coronal[0]] = self.third_color
+            #coronal_image[:,pixels_point_coronal[0]] = self.third_color
+            self.manager.sagittal_index = nearest_sagittal
+            self.x[0] = pixels_point_coronal[0]
+            upd=True
+
+        if upd:
+            self.update()
+
+        self.hover_window = -1
+
+        self.update_cursors()
 
 
-        self.update_coronal_tkt(coronal_image)
-        self.update_sagittal_tkt(sagittal_image)
 
     def setup_manual_prompt(self):
         self.window = window = Tk()
@@ -429,20 +449,25 @@ class Coordinator:
         Label(window,textvariable = self.sagittal_txt, height = 1).grid(row = 0, column = 20, columnspan =20)
 
         self.zoom_txt = StringVar()
-        self.zoom_txt.set("zoom canvas")
-        Label(window,textvariable = self.zoom_txt, height = 1).grid(row = 2, column = 0, columnspan =5)
+        self.zoom_txt.set("")
+        self.zoom_txt2 = StringVar()
+        self.zoom_txt2.set("Zoom canvas")
+        Label(window, textvariable = self.zoom_txt, height = 1).grid(row = 2, column = 20, columnspan = 10)
 
+        Label(window, textvariable = self.zoom_txt2, height = 1, font = bold_font).grid(row = 2, column = 10, columnspan = 10, sticky=E)
+
+        Label(window,text="Command panel", height = 1, font=bold_font).grid(row = 2, column = 0, columnspan =10)
         command_panel = CommandPanel(window, self)
-        command_panel.grid(row=2, column=5, rowspan=20, columnspan=5,sticky=N+S+E+W)
+        command_panel.grid(row=3, column=0, rowspan=20, columnspan=10, sticky=N)
 
-        Label(window ,text = "Abbreviations", font=bold_font).grid(row = 2,column = 30, columnspan=10)
+        Label(window ,text = "Abbreviations", font=bold_font).grid(row = 2, column = 30, columnspan=10)
         example = Example(window, self.manager.abbreviations)
 
-        example.grid(row=3, column=30, rowspan=19, columnspan=10,sticky=N+S+E+W)
+        example.grid(row=3, column=30, rowspan=20, columnspan=10,sticky=N+S+E+W)
 
         window.update()
 
-        self.zoom_size = int(example.winfo_height() * .5)
+        self.zoom_size = (int(example.winfo_height()*.6), int(example.winfo_height()*.3))
 
         #Grid.columnconfigure(self.window, 4, weight=1)
 
@@ -481,10 +506,14 @@ class Coordinator:
         self.tkt_coronal.grid(row=1, column=0, columnspan=20)
 
         self.tkt_coronal.bind('<Motion>', self.frontal_mouse_move)
-        self.window.bind('<Key>',self.tkt_key)
+        #self.window.bind('<Key>',self.tkt_key)
+        for letter in letters:
+
+            self.window.bind(f'<Control-{letter}>', lambda _, char=letter:self.tkt_key(char, False))
+
 
         self.tkt_zoom = Label(self.window, bd=0)
-        self.tkt_zoom.grid(row=2, column=0, columnspan=5, rowspan=20, sticky=S)
+        self.tkt_zoom.grid(row=3, column=10, columnspan=20, rowspan=20, sticky=N)
 
 
         sagittal_image=self.img_to_tk(sagittal_image)
@@ -541,14 +570,15 @@ class Coordinator:
         #cv2.putText(coronal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
         self.coronal_txt.set(f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}")
         self.zoom_txt.set(f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}")
+        self.zoom_txt2.set("Zoom: coronal")
 
         self.x[0], self.y[0] = x, y
 
         self.update_cursors()
 
     def update_cursors(self):
-
-        coronal_image, sagittal_image = self.coronal_image.copy(), self.sagittal_image.copy()
+        coronal_image, sagittal_image = np.array(self.coronal_image, order='K', copy=True), np.array(self.sagittal_image, order='K', copy=True)
+        #coronal_image, sagittal_image = self.coronal_image.copy(), self.sagittal_image.copy()
         x0, x1 = self.x
         y0, y1 = self.y
 
@@ -563,7 +593,7 @@ class Coordinator:
                 sagittal_image[:, pixel[0]] = self.cursor_color
             except:
                 pass
-        else:
+        elif self.hover_window==1:
             try:
                 pixel = self.manager.to_pixel((-1, str_to_float(self.manager.sagittals[self.manager.sagittal_index]), -1), 0)
                 sagittal_image[:,x1] = self.cursor_color
@@ -573,6 +603,11 @@ class Coordinator:
             except Exception as e:
                 print(e)
                 pass
+        else:
+            coronal_image[:,x0] = self.cursor_color
+            coronal_image[y0,:] = self.cursor_color
+            sagittal_image[:,x1] = self.cursor_color
+            sagittal_image[y1,:] = self.cursor_color
 
 
         self.update_sagittal_tkt(sagittal_image)
@@ -583,6 +618,7 @@ class Coordinator:
         img = self.img_to_tk(img)
         self.tkt_coronal.configure(image=img)
         self.tkt_coronal.image = img
+
 
         if self.hover_window == 0:
             self.update_zoom(self.full_coronal_image)
@@ -602,7 +638,8 @@ class Coordinator:
         #cv2.putText(sagittal_image, f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}", self.manager.sagital_dvs_txt, font,  .5, self.primary_color, 1, cv2.LINE_AA)
         self.sagittal_txt.set(f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}")
         self.zoom_txt.set(f"ap: {coords[0]}; ml: {coords[1]}; dv: {coords[2]}")
-        #cv2.imshow("Sagittal", sagittal_image)
+        self.zoom_txt2.set("Zoom: sagittal")
+        #cv2.imshow("Sagittal", sagittal_imagexr)
         self.x[1], self.y[1] = x, y
         self.update_cursors()
 
@@ -612,22 +649,28 @@ class Coordinator:
         self.tkt_sagittal.configure(image=img)
         self.tkt_sagittal.image = img
 
-        if self.hover_window == 1:
+        if abs(self.hover_window) == 1:
             self.update_zoom(self.full_sagittal_image)
 
     def update_zoom(self, rawimg):
         x, y = round(self.x[self.hover_window]/self.manager.scale_factor), round(self.y[self.hover_window]/self.manager.scale_factor)
         zoom_size = self.zoom_size
         size = rawimg.shape
-        y_1 = max(y - zoom_size, 0)
-        subtr_y2 = (y - zoom_size) - y_1
-        y_2 = min(y + zoom_size, size[0])
-        subtr_y1 = (y + zoom_size) - y_2
 
-        x_1 = max(x - zoom_size, 0)
-        subtr_x2 = (x - zoom_size) - x_1
-        x_2 = min(x + zoom_size, size[1])
-        subtr_x1 = (x + zoom_size) - x_2
+        y_1 = max(y - zoom_size[1], 0)
+        subtr_y2 = (y - zoom_size[1]) - y_1
+        y_2 = min(y + zoom_size[1], size[0])
+        subtr_y1 = (y + zoom_size[1]) - y_2
+
+
+        x_1 = max(x - zoom_size[0], 0)
+        subtr_x2 = (x - zoom_size[0]) - x_1
+        x_2 = min(x + zoom_size[0], size[1])
+        subtr_x1 = (x + zoom_size[0]) - x_2
+        #rawimg = rawimg.copy()
+        rawimg = np.array(rawimg, order='K', copy=True)
+        rawimg[:, x] = self.cursor_color
+        rawimg[y,:] = self.cursor_color
 
         img = self.img_to_tk(rawimg[y_1 - subtr_y1:y_2-subtr_y2, x_1 - subtr_x1:x_2-subtr_x2])
         self.tkt_zoom.configure(image=img)
@@ -719,7 +762,7 @@ class Coordinator:
 
         for i, marker in enumerate(self.markers):
 
-            print("     M{} - ap: {}; ml: {}; dv: {}".format(i,marker[2][0],marker[2][1],marker[2][2]))
+            print("     M{} - ap: {}; ml: {}; dv: {}".format(i, round(marker[2][0],2), round(marker[2][1], 2), round(marker[2][2], 2)))
 
             if (i + 1) % 2 == 0:
                 angle_front = np.degrees(np.arctan2(-self.markers[i - 1][2][1] + marker[2][1], -self.markers[i-1][2][2] + marker[2][2]))
@@ -761,7 +804,7 @@ class Coordinator:
 
                     cv2.circle(sagittal_image, tuple(start), 4, self.primary_color, 1)
 
-            size = max(.7 - abs(coord_float - marker[2][1]) * .2, .2)
+            size = max(.7 - abs(coord_float - marker[2][1]) * .3, .1)
             new_marker = self.manager.to_pixel_r(marker[2], 1)
             sagittal_overlay = sagittal_image.copy()
 
@@ -798,7 +841,7 @@ class Coordinator:
 
                     cv2.circle(coronal_image, tuple(start), 4, self.primary_color, 3)
 
-            size = max(.7 - abs(coord_float - marker[2][0]) * .2, .3)
+            size = max(.7 - abs(coord_float - marker[2][0]) * .3, .1)
             #new_marker = self.manager.to_pixel(marker[2], 0)
 
             coronal_overlay = coronal_image.copy()
