@@ -15,7 +15,6 @@ Brain Coordinator is a Python 3-based stereotaxic coordinator compatible with an
 
 ## Overview ##
 - [Getting started](#getting-started)
-- [How it works](#how-it-works)
 - [Authors](#authors)
 
 
@@ -67,18 +66,13 @@ Finally, to test your new atlas, run
 ```braincoordinator --animal [atlas_id]```
 
 ### Controls ###
-Brain Coordinator is based on simple keyboard commands and mouse clicks.
+Hold <kbd>CTRL</kbd> and press:
 - <kbd>A</kbd>/<kbd>S</kbd>: previous/next coronal slice.
 - <kbd>Z</kbd>/<kbd>X</kbd>: previous/next sagittal slice.
 - <kbd>D</kbd>: place marker at mouse location.
 - <kbd>F</kbd>: remove most recent marker.
 
 Click and drag to move markers.
-
-<p align="center">
-    <img src="https://raw.githubusercontent.com/simonarvin/braincoordinator/main/braincoordinator/graphics/crunch.svg" align="center" height="250">
-</p>
-
 
 ## Known issues ##
 None yet.
