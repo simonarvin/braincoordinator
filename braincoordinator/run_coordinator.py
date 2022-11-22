@@ -669,19 +669,22 @@ class Coordinator:
         subtr_x1 = (x + zoom_size[0]) - x_2
         #rawimg = rawimg.copy()
         rawimg = np.array(rawimg, order='K', copy=True)
-        rawimg[:, x] = self.cursor_color
-        rawimg[y,:] = self.cursor_color
+        try:
+            rawimg[:, x] = self.cursor_color
+            rawimg[y,:] = self.cursor_color
+        except:
+            pass
 
         img = self.img_to_tk(rawimg[y_1 - subtr_y1:y_2-subtr_y2, x_1 - subtr_x1:x_2-subtr_x2])
         self.tkt_zoom.configure(image=img)
         self.tkt_zoom.image = img
 
 
-    def place_cross(self, source: np.ndarray, point: tuple, color: tuple) -> None:
+    def place_cross(self, source: np.ndarray, point: tuple, color: tuple, size = 8) -> None:
 
-        source[max(point[1] - 7, 0):point[1] + 8, point[0]] = color
+        source[max(point[1] - size, 0):point[1] + size, point[0]] = color
 
-        source[point[1], max(point[0] - 7,0):point[0] + 8] = color
+        source[point[1], max(point[0] - size,0):point[0] + size] = color
 
         #cv2.circle(source, point,4,color,1)
 
@@ -720,7 +723,7 @@ class Coordinator:
 
                     elif ready > 5:
                         if type == 0:
-                            cv2.line(img, (start,offset), (width+i,offset), self.primary_color, 1)
+                            cv2.line(img, (start, offset), (width+i,offset), self.primary_color, 1)
                             return [start, abs(start - (width + i))] #center, pixels per mm
                         else:
                             cv2.line(img, (offset, start), (offset, height+i), self.primary_color, 1)
@@ -749,6 +752,25 @@ class Coordinator:
         except:
             return (30, -1)
 
+    def line(self, img, start, stop, fraction, color):
+
+        n = int(np.sqrt((start[0] - stop[0])**2 + (start[1] - stop[1])**2)*.1)
+
+        diff_y = (stop[0] - start[0])/n
+        diff_x = (stop[1] - start[1])/n
+        i = 0
+        while i < n:
+
+            start_ = (round(start[0] + diff_y * i), round(start[1] + diff_x * i))
+            stop_ = (round(start[0] + diff_y * (i + 1)), round(start[1] + diff_x * (i + 1)))
+            #size_ =abs(fraction - i/n) * 5 + 1
+            #size = max(int(round(3/size_**1.2)), 1)
+            size=1
+
+            cv2.line(img, start_, stop_, color, size, lineType=cv2.LINE_AA)
+
+
+            i += 2
 
     def update(self) -> tuple:
 
@@ -782,11 +804,12 @@ class Coordinator:
             coord_float=str_to_float(self.manager.coordinate[1])
             if (i + 1) % 2 == 0:
 
-                if self.markers[i - 1][2][1] == marker[2][1] == coord_float:
+                if abs(self.markers[i - 1][2][1] - coord_float) < .11 and self.markers[i - 1][2][1] == marker[2][1]:
                     new_marker = self.manager.to_pixel_r(marker[2], 1)
                     old_marker = self.manager.to_pixel_r(self.markers[i - 1][2], 1)
 
                     cv2.line(sagittal_image, old_marker, new_marker, self.second_color, 1)
+
 
                 elif self.markers[i - 1][2][1] > coord_float > marker[2][1] or self.markers[i - 1][2][1] < coord_float < marker[2][1]:
                     fraction = (coord_float - self.markers[i - 1][2][1])/(marker[2][1] - self.markers[i - 1][2][1])
@@ -797,12 +820,12 @@ class Coordinator:
                     ml_diff = (new_marker[0] - old_marker[0]) * fraction
                     dv_diff = (new_marker[1] - old_marker[1]) * fraction
 
-                    cv2.line(sagittal_image, old_marker, new_marker, self.second_color, 1)
+                    level = np.round(np.array([old_marker[0] + ml_diff, old_marker[1] + dv_diff])).astype(int)
 
-
-                    start = np.round(np.array([old_marker[0] + ml_diff, old_marker[1] + dv_diff])).astype(int)
-
-                    cv2.circle(sagittal_image, tuple(start), 4, self.primary_color, 1)
+                    self.line(sagittal_image, old_marker, new_marker, fraction, self.second_color)
+                    cv2.circle(sagittal_image, tuple(level), 4, (255,255,255), -1)
+                    #self.place_cross(sagittal_image, tuple(level), self.primary_color, size=30)
+                    cv2.circle(sagittal_image, tuple(level), 5, self.primary_color, 1,lineType=cv2.LINE_AA)
 
             size = max(.7 - abs(coord_float - marker[2][1]) * .3, .1)
             new_marker = self.manager.to_pixel_r(marker[2], 1)
@@ -810,7 +833,7 @@ class Coordinator:
 
             self.place_cross(sagittal_overlay, new_marker, self.primary_color)
 
-            cv2.putText(sagittal_overlay, "M" + str(i), tuple([mark + 5 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
+            cv2.putText(sagittal_overlay, "M" + str(i), tuple([mark + 8 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
             alpha = size/.7
 
             cv2.addWeighted(sagittal_overlay, alpha, sagittal_image, 1 - alpha, 0, sagittal_image)
@@ -821,9 +844,9 @@ class Coordinator:
             old_marker = self.manager.to_pixel_r(self.markers[i - 1][2], 0)
             if (i + 1) % 2 == 0:
 
-                if self.markers[i - 1][2][0] == marker[2][0] == coord_float:
+                if abs(self.markers[i - 1][2][0] - coord_float) < .11 and self.markers[i - 1][2][0] == marker[2][0]:
                     #new_marker = self.manager.to_pixel(marker[2], 0)
-                    old_marker = self.manager.to_pixel_r(self.markers[i - 1][2], 0)
+                    #old_marker = self.manager.to_pixel_r(self.markers[i - 1][2], 0)
 
                     cv2.line(coronal_image, old_marker, new_marker, self.second_color, 1)
 
@@ -835,18 +858,19 @@ class Coordinator:
                     ml_diff = (new_marker[0] - old_marker[0]) * fraction
                     dv_diff = (new_marker[1] - old_marker[1]) * fraction
 
-                    cv2.line(coronal_image, old_marker, new_marker, self.second_color, 1)
+                    #cv2.line(coronal_image, old_marker, new_marker, self.second_color, 1)
 
                     start = np.round(np.array([old_marker[0] + ml_diff, old_marker[1] + dv_diff])).astype(int)
-
-                    cv2.circle(coronal_image, tuple(start), 4, self.primary_color, 3)
+                    self.line(coronal_image, old_marker, new_marker, fraction, self.second_color)
+                    cv2.circle(coronal_image, tuple(start), 4, (255,255,255), -1)
+                    cv2.circle(coronal_image, tuple(start), 4, self.primary_color, 1,lineType=cv2.LINE_AA)
 
             size = max(.7 - abs(coord_float - marker[2][0]) * .3, .1)
             #new_marker = self.manager.to_pixel(marker[2], 0)
 
             coronal_overlay = coronal_image.copy()
             self.place_cross(coronal_overlay, new_marker, self.primary_color)
-            cv2.putText(coronal_overlay, "M" + str(i), tuple([mark + 5 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
+            cv2.putText(coronal_overlay, "M" + str(i), tuple([mark + 8 for mark in new_marker]), font,  size, self.primary_color, 1, cv2.LINE_AA)
 
             alpha = size/.7
 
