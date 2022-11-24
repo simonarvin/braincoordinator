@@ -76,5 +76,11 @@ class Getter:
                         localfile.write(f.read())
                 print("Downloading file {}/{}".format(i + 1, total_files))
 
+        file_url = "{}{}".format(atlas_url, "abbreviations.txt")
+        file_name = "{}/{}".format(dir, "abbreviations.txt")
+        with urllib.request.urlopen(file_url) as f:
+            with open(file_name, mode='wb') as localfile:
+                localfile.write(f.read())
+
         print("{} atlas succesfully downloaded.".format(atlas_info[0]))
         print("Now, run braincoordinator --animal {}".format(atlas_info[0]))
