@@ -18,6 +18,7 @@ from braincoordinator.utilities.get_atlas import Getter
 from tkinter import *
 from tkinter import ttk
 import tkinter as tk
+from tkinter.filedialog import asksaveasfile
 from PIL import Image, ImageTk
 
 font = cv2.FONT_HERSHEY_SIMPLEX
@@ -125,10 +126,11 @@ class CommandPanel(tk.Frame):
 
 
         gonew_btn = ttk.Button(window ,text="<<",command=go_new,width=3)
-        gonew_btn.grid(row=0, column=4, sticky=N+S+E+W)
+        gonew_btn.grid(row=0, column=5, sticky=N+S+E+W)
 
-        ttk.Button(window, text="test",command=root.coord_callback,width=3).grid(row=4, column=1, sticky=N+S+E+W)
+        ttk.Button(window, text="show position",command=root.coord_callback,width=7).grid(row=4, column=1, sticky=N+S+E+W)
         ttk.Button(window, text="clear",command=root.coord_callback,width=3).grid(row=4, column=2, sticky=N+S+E+W)
+        ttk.Button(window, text="export",command=root.export,width=4).grid(row=4, column=3, sticky=N+S+E+W)
 
 
         def callback(*args):
@@ -379,6 +381,21 @@ class Coordinator:
         #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         return ImageTk.PhotoImage(Image.fromarray(img))
+
+    def export(self):
+        if len(self.markers) == 0:
+            print("no markers: Nothing to export.")
+            return
+        export_file = asksaveasfile(title="Select Location", initialfile = "brainy_export.txt", filetypes=(("Text Files", "*.txt"),))
+        verbs = []
+        for i, marker in enumerate(self.markers):
+            verbs.append(self.print_markers(i, marker))
+        verbs=list(sum(verbs, ()))
+        #verbs[:] = [v for v in verbs if v != ""]
+        for i, verb in enumerate(verbs):
+            export_file.write(verb+"\n")
+            if (i + 1) % 3 == 0:
+                export_file.write("\n")
 
     def coord_callback(self,*args):
         ap = ml = dv = -99
@@ -772,6 +789,27 @@ class Coordinator:
 
             i += 2
 
+    def print_markers(self, i, marker):
+        raw="M{} - ap: {}; ml: {}; dv: {}".format(i, round(marker[2][0],2), round(marker[2][1], 2), round(marker[2][2], 2))
+
+        if (i + 1) % 2 == 0:
+            angle_front = np.degrees(np.arctan2(-self.markers[i - 1][2][1] + marker[2][1], -self.markers[i-1][2][2] + marker[2][2]))
+            angle_sag = np.degrees(np.arctan2(-self.markers[i - 1][2][0]+marker[2][0], -self.markers[i-1][2][2] + marker[2][2]))
+            distance = distance3d(marker[2], self.markers[i - 1][2])
+
+            if len(self.paths) > 0:
+                if i != self.paths[len(self.paths)-1][0]:
+                    self.paths.append([i, self.markers[i - 1], marker, angle_front, angle_sag, distance])
+            else:
+                self.paths.append([i,self.markers[i - 1], marker, angle_front, angle_sag, distance])
+
+
+            instruction = "Depth: |M{}M{}| {} mm; Coronal angle: {} deg; Sagital angle: {} deg".format(i - 1, i, round(distance, 2), np.round(angle_front, 2), np.round(angle_sag, 2))
+
+            return (raw, instruction)
+        else:
+            return (raw,)
+
     def update(self) -> tuple:
 
         coronal_image, sagittal_image = self.manager.get_images()
@@ -781,25 +819,9 @@ class Coordinator:
         #self.clear()
         self.print_instructions()
         print("Markers")
-
+        verbs =[]
         for i, marker in enumerate(self.markers):
-
-            print("     M{} - ap: {}; ml: {}; dv: {}".format(i, round(marker[2][0],2), round(marker[2][1], 2), round(marker[2][2], 2)))
-
-            if (i + 1) % 2 == 0:
-                angle_front = np.degrees(np.arctan2(-self.markers[i - 1][2][1] + marker[2][1], -self.markers[i-1][2][2] + marker[2][2]))
-                angle_sag = np.degrees(np.arctan2(-self.markers[i - 1][2][0]+marker[2][0], -self.markers[i-1][2][2] + marker[2][2]))
-                distance = distance3d(marker[2], self.markers[i - 1][2])
-
-                if len(self.paths) > 0:
-                    if i != self.paths[len(self.paths)-1][0]:
-                        self.paths.append([i, self.markers[i - 1], marker, angle_front, angle_sag, distance])
-                else:
-                    self.paths.append([i,self.markers[i - 1], marker, angle_front, angle_sag, distance])
-
-
-                print("     |M{}M{}| {} mm; ang_cor: {} deg; ang_sag: {} deg".format(i - 1, i, round(distance, 2), np.round(angle_front, 2), np.round(angle_sag, 2)))
-
+            verbs.append(self.print_markers(i, marker))
 
             coord_float=str_to_float(self.manager.coordinate[1])
             if (i + 1) % 2 == 0:
@@ -876,6 +898,9 @@ class Coordinator:
 
             cv2.addWeighted(coronal_overlay, alpha, coronal_image, 1 - alpha, 0, coronal_image)
 
+        verbs=list(sum(verbs, ()))
+        for verb in verbs:
+            print(verb)
 
         self.full_coronal_image, self.full_sagittal_image = coronal_image, sagittal_image
             #img = cv2.resize(img, None, fx=self.manager.scale_factor, fy=self.manager.scale_factor,interpolation = self.manager.interpolation)
