@@ -591,6 +591,10 @@ class Coordinator:
 
         self.x[0], self.y[0] = x, y
 
+        nearest_coronal, nearest_sagittal = self.manager.find_nearest_slices((*coords[:2],))
+        self.manager.sagittal_index = nearest_sagittal
+        self.update()
+
         self.update_cursors()
 
     def update_cursors(self):
@@ -658,6 +662,12 @@ class Coordinator:
         self.zoom_txt2.set("Zoom: sagittal")
         #cv2.imshow("Sagittal", sagittal_imagexr)
         self.x[1], self.y[1] = x, y
+
+        #todo: update AP view according to: coords[0]
+
+        nearest_coronal, nearest_sagittal = self.manager.find_nearest_slices((*coords[:2],))
+        self.manager.coronal_index = nearest_coronal
+        self.update()
         self.update_cursors()
 
 
@@ -804,7 +814,7 @@ class Coordinator:
                 self.paths.append([i,self.markers[i - 1], marker, angle_front, angle_sag, distance])
 
 
-            instruction = "Depth: |M{}M{}| {} mm; Coronal angle: {} deg; Sagital angle: {} deg".format(i - 1, i, round(distance, 2), np.round(angle_front, 2), np.round(angle_sag, 2))
+            instruction = "Position the stereotaxic tip over M{} with a coronal angle of: {} deg; and a sagital angle of: {} deg.\nThen, go this deep: |M{}M{}| {} mm;\n****".format(i - 1, np.round(angle_front, 2), np.round(angle_sag, 2),i - 1, i, round(distance, 2))
 
             return (raw, instruction)
         else:
