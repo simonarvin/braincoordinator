@@ -7,7 +7,7 @@
 Brain Coordinator is a Python 3-based stereotaxic coordinator compatible with any stereotaxic atlas. This software is actively maintained: Users are encouraged to contribute to its development.
 
 ## Features ##
-- [x] **Easily coordinate your surgerical procedures**, with an angle or not.
+- [x] **Easily coordinate your stereotaxic procedures**, with an angle or not.
 - [x] Compatible with **any stereotaxic atlas**.
 - [x] **Avoid** sensitive structures.
 - [x] Vary your path of entry to **reduce confounders**.
